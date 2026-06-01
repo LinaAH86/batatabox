@@ -389,7 +389,7 @@ code{
         <div class="dot"></div>
         <span id="saveStatusText">All saved</span>
       </div>
-      <button class="tb-btn primary" id="saveBtn" onclick="saveToJsonBin()">💾 Save Menu</button>
+      <button class="tb-btn primary" id="saveBtn" onclick="saveToSupabase()">💾 Save Menu</button>
       <a href="index.html" target="_blank" class="tb-btn">👁️ Preview</a>
       <button class="tb-btn danger" onclick="logout()">Sign out</button>
     </div>
@@ -684,14 +684,61 @@ code{
    OCHO POS — Admin Panel
    ================================================================ */
 
-// ── CONFIG — fill these in ──────────────────────────────────────
-const JSONBIN_BIN_ID  = "6a1d317721f9ee59d2a3e116";
-const JSONBIN_API_KEY = "$2a$10$Xk9C/D6.NrLqkPGl471jkOmDhse2d4cQbMDuXWYp7rkFtuybSqrhu";
+// ── CONFIG ──────────────────────────────────────────────────────
+const SUPABASE_URL = "https://mevjtwhxhprpeaohbuwe.supabase.co";
+const SUPABASE_KEY = "sb_publishable_vJftsz9oezOzkPkyt5rnEg_fTdX9H4l";
+const TENANT_SLUG  = "batata-box";
+const STORAGE_BUCKET = "menu-images";
 
-// Default credentials — overridden by what's stored in JSONBin
+// Default credentials — overridden by what's stored in Supabase
 const DEFAULT_USERNAME = "admin";
 const DEFAULT_PASSWORD = "batatabox2024";
 // ────────────────────────────────────────────────────────────────
+
+// ── SUPABASE HELPERS ─────────────────────────────────────────────
+const SB_HEADERS = {
+  "Content-Type":  "application/json",
+  "apikey":        SUPABASE_KEY,
+  "Authorization": `Bearer ${SUPABASE_KEY}`,
+};
+
+async function sbLoadMenu() {
+  const res = await fetch(
+    `${SUPABASE_URL}/rest/v1/menus?slug=eq.${TENANT_SLUG}&select=data&limit=1`,
+    { headers: SB_HEADERS }
+  );
+  if (!res.ok) throw new Error("Load failed");
+  const rows = await res.json();
+  if (!rows.length) throw new Error("No data found");
+  return rows[0].data;
+}
+
+async function sbSaveMenu(data) {
+  const res = await fetch(
+    `${SUPABASE_URL}/rest/v1/menus?slug=eq.${TENANT_SLUG}`,
+    {
+      method: "PATCH",
+      headers: { ...SB_HEADERS, "Prefer": "return=minimal" },
+      body: JSON.stringify({ data })
+    }
+  );
+  if (!res.ok) throw new Error("Save failed");
+}
+
+async function sbUploadImage(file) {
+  const ext  = file.name.split(".").pop();
+  const path = `${TENANT_SLUG}/${Date.now()}.${ext}`;
+  const res  = await fetch(
+    `${SUPABASE_URL}/storage/v1/object/${STORAGE_BUCKET}/${path}`,
+    {
+      method:  "POST",
+      headers: { "apikey": SUPABASE_KEY, "Authorization": `Bearer ${SUPABASE_KEY}`, "Content-Type": file.type },
+      body: file
+    }
+  );
+  if (!res.ok) throw new Error("Upload failed");
+  return `${SUPABASE_URL}/storage/v1/object/public/${STORAGE_BUCKET}/${path}`;
+}
 
 // ── STATE ────────────────────────────────────────────────────────
 let menuData = {
@@ -728,36 +775,36 @@ async function tryLogin() {
   const un = document.getElementById("unInput").value.trim();
   const pw = document.getElementById("pwInput").value;
   const errorEl = document.getElementById("loginError");
+  const loginBtn = document.getElementById("loginBtn");
   errorEl.classList.remove("on");
+  loginBtn.textContent = "Signing in…";
+  loginBtn.disabled = true;
 
-  // First fetch live data from JSONBin so we always check latest credentials
-  let liveData = null;
-  if (JSONBIN_BIN_ID !== "YOUR_BIN_ID") {
-    try {
-      const res = await fetch(`https://api.jsonbin.io/v3/b/${JSONBIN_BIN_ID}/latest`, {
-        headers: { "X-Master-Key": JSONBIN_API_KEY, "X-Bin-Meta": "false" }
-      });
-      if (res.ok) liveData = await res.json();
-    } catch {}
-  }
+  try {
+    const liveData = await sbLoadMenu();
+    const validUser = liveData?.auth?.username || DEFAULT_USERNAME;
+    const validPass = liveData?.auth?.password || DEFAULT_PASSWORD;
 
-  // Use live credentials if available, otherwise fall back to defaults
-  const validUser = liveData?.auth?.username || DEFAULT_USERNAME;
-  const validPass = liveData?.auth?.password || DEFAULT_PASSWORD;
-
-  if (un === validUser && pw === validPass) {
-    sessionUser = un;
-    if (liveData) menuData = liveData;
-    document.getElementById("loginScreen").style.display = "none";
-    document.getElementById("app").style.display = "block";
-    setSaveStatus("saved", "Loaded ✓");
-    renderAll();
-  } else {
-    errorEl.textContent = "Incorrect username or password.";
+    if (un === validUser && pw === validPass) {
+      sessionUser = un;
+      menuData = liveData;
+      document.getElementById("loginScreen").style.display = "none";
+      document.getElementById("app").style.display = "block";
+      setSaveStatus("saved", "Loaded ✓");
+      renderAll();
+    } else {
+      errorEl.textContent = "Incorrect username or password.";
+      errorEl.classList.add("on");
+      document.getElementById("pwInput").value = "";
+      document.getElementById("pwInput").focus();
+    }
+  } catch {
+    errorEl.textContent = "Connection error. Check your internet and try again.";
     errorEl.classList.add("on");
-    document.getElementById("pwInput").value = "";
-    document.getElementById("pwInput").focus();
   }
+
+  loginBtn.textContent = "Sign In →";
+  loginBtn.disabled = false;
 }
 
 function logout() {
@@ -771,23 +818,26 @@ document.getElementById("loginBtn").addEventListener("click", tryLogin);
 document.getElementById("pwInput").addEventListener("keydown", e => { if (e.key === "Enter") tryLogin(); });
 document.getElementById("unInput").addEventListener("keydown", e => { if (e.key === "Enter") document.getElementById("pwInput").focus(); });
 
-// ── JSONBIN ──────────────────────────────────────────────────────
-async function loadFromJsonBin() {
-  if (JSONBIN_BIN_ID === "YOUR_BIN_ID") {
-    renderAll(); showPanel("setup"); return;
-  }
+// ── LOAD & SAVE ───────────────────────────────────────────────────
+async function loadFromSupabase() {
   try {
     setSaveStatus("saving", "Loading…");
-    const res = await fetch(`https://api.jsonbin.io/v3/b/${JSONBIN_BIN_ID}/latest`, {
-      headers: { "X-Master-Key": JSONBIN_API_KEY, "X-Bin-Meta": "false" }
-    });
-    if (!res.ok) throw new Error();
-    menuData = await res.json();
+    menuData = await sbLoadMenu();
     setSaveStatus("saved", "Loaded ✓");
     renderAll();
   } catch {
     setSaveStatus("error", "Load failed — using local data");
     renderAll();
+  }
+}
+
+async function saveToSupabase() {
+  setSaveStatus("saving", "Saving…");
+  try {
+    await sbSaveMenu(menuData);
+    setSaveStatus("saved", "Saved ✓");
+  } catch {
+    setSaveStatus("error", "Save failed. Check your connection.");
   }
 }
 
@@ -829,34 +879,13 @@ function saveCredentials() {
   document.getElementById("sec-new-pw").value       = "";
   document.getElementById("sec-confirm-pw").value   = "";
 
-  showSecMsg("✅ Credentials updated! Saving to JSONBin…", false);
-  saveToJsonBin().then(() => {
-    showSecMsg("✅ Saved! You'll use the new credentials next time you log in.", false);
+  showSecMsg("✅ Credentials updated! Saving…", false);
+  saveToSupabase().then(() => {
+    showSecMsg("✅ Saved! Use new credentials next time you log in.", false);
   });
 }
 
-async function saveToJsonBin() {
-  if (JSONBIN_BIN_ID === "YOUR_BIN_ID") {
-    alert("⚠️ Please configure your JSONBin ID and API Key first.\n\nSee the Setup Guide panel.");
-    showPanel("setup"); return;
-  }
-  setSaveStatus("saving", "Saving…");
-  try {
-    const res = await fetch(`https://api.jsonbin.io/v3/b/${JSONBIN_BIN_ID}`, {
-      method: "PUT",
-      headers: {
-        "Content-Type": "application/json",
-        "X-Master-Key": JSONBIN_API_KEY,
-        "X-Bin-Versioning": "false"
-      },
-      body: JSON.stringify(menuData)
-    });
-    if (!res.ok) throw new Error();
-    setSaveStatus("saved", "Saved ✓");
-  } catch {
-    setSaveStatus("error", "Save failed. Check your API key.");
-  }
-}
+async function saveToJsonBin() { return saveToSupabase(); } // legacy alias
 
 function setSaveStatus(state, text) {
   const el = document.getElementById("saveStatus");
@@ -1079,17 +1108,25 @@ function deleteCat(id) {
 }
 
 // ── IMAGE HANDLING ────────────────────────────────────────────────
-function handleImageUpload(event) {
+async function handleImageUpload(event) {
   const file = event.target.files[0];
   if (!file) return;
-  if (file.size > 2 * 1024 * 1024) { alert("Image must be under 2MB. Consider using a URL instead."); return; }
-  const reader = new FileReader();
-  reader.onload = e => {
-    currentImgBase64 = e.target.result;
-    showImgPreview(currentImgBase64);
-    document.getElementById("item-img-url").value = "";
-  };
-  reader.readAsDataURL(file);
+  if (file.size > 5 * 1024 * 1024) { alert("Image must be under 5MB."); return; }
+
+  // Show uploading state
+  document.getElementById("imgUploadText").innerHTML = "<strong>Uploading…</strong>";
+  document.getElementById("imgUploadIco").textContent = "⏳";
+
+  try {
+    const url = await sbUploadImage(file);
+    currentImgBase64 = url;
+    showImgPreview(url);
+    document.getElementById("item-img-url").value = url;
+  } catch {
+    alert("Upload failed. Please try pasting an image URL instead.");
+    document.getElementById("imgUploadText").innerHTML = "<strong>Click to upload</strong> or drag & drop";
+    document.getElementById("imgUploadIco").textContent = "📷";
+  }
 }
 
 function previewFromUrl(url) {

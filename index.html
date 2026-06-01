@@ -1,4 +1,4 @@
-<!DOCTYPE html> 
+<!DOCTYPE html>
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -223,31 +223,39 @@ img{display:block}
    Data source: JSONBin.io  (configure BIN_ID below)
    ================================================================ */
 
-// ── CONFIG — fill these in after creating your JSONBin ──────────
-const JSONBIN_BIN_ID  = "6a1d317721f9ee59d2a3e116";          // from jsonbin.io
-const JSONBIN_API_KEY = "$2a$10$Xk9C/D6.NrLqkPGl471jkOmDhse2d4cQbMDuXWYp7rkFtuybSqrhu";  // from jsonbin.io
+// ── CONFIG ───────────────────────────────────────────────────────
+const SUPABASE_URL   = "https://mevjtwhxhprpeaohbuwe.supabase.co";
+const SUPABASE_KEY   = "sb_publishable_vJftsz9oezOzkPkyt5rnEg_fTdX9H4l";
+const TENANT_SLUG    = "batata-box";
 // ────────────────────────────────────────────────────────────────
 
 const TENANT = { currency:"$", tax:0.11 };
 const BADGE_LABEL = { new:"NEW", hot:"🔥 Hot", veg:"🌿 Veg", spicy:"🌶 Spicy" };
 
-let MENU_DATA = null; // loaded from JSONBin
+let MENU_DATA = null;
 let activeCat = "all", query = "";
 const cart = {};
 
 const $ = id => document.getElementById(id);
 
-// ── FETCH MENU FROM JSONBIN ──────────────────────────────────────
+// ── LOAD FROM SUPABASE ───────────────────────────────────────────
 async function loadMenu() {
   try {
-    const res = await fetch(`https://api.jsonbin.io/v3/b/${JSONBIN_BIN_ID}/latest`, {
-      headers: { "X-Master-Key": JSONBIN_API_KEY, "X-Bin-Meta": "false" }
-    });
+    const res = await fetch(
+      `${SUPABASE_URL}/rest/v1/menus?slug=eq.${TENANT_SLUG}&select=data&limit=1`,
+      {
+        headers: {
+          "apikey": SUPABASE_KEY,
+          "Authorization": `Bearer ${SUPABASE_KEY}`
+        }
+      }
+    );
     if (!res.ok) throw new Error("Failed to load");
-    MENU_DATA = await res.json();
+    const rows = await res.json();
+    if (!rows.length) throw new Error("No menu found");
+    MENU_DATA = rows[0].data;
     $("loadingEl").style.display = "none";
 
-    // apply restaurant info
     if (MENU_DATA.restaurant) {
       const r = MENU_DATA.restaurant;
       if (r.logoUrl) { $("heroLogo").src = r.logoUrl; $("heroImgRight").src = r.logoUrl; }
@@ -261,7 +269,7 @@ async function loadMenu() {
     $("loadingEl").innerHTML = `<div style="text-align:center;padding:60px 20px;color:rgba(255,255,255,.4)">
       <div style="font-size:36px;margin-bottom:12px">⚠️</div>
       <div style="font-size:15px;font-weight:600;color:#fff;margin-bottom:6px">Menu unavailable</div>
-      <div style="font-size:13px">Check your JSONBin configuration in index.html</div>
+      <div style="font-size:13px">Please try again later</div>
     </div>`;
   }
 }
