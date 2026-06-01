@@ -1,4 +1,4 @@
-<!DOCTYPE html> 
+<!DOCTYPE html>
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -685,8 +685,8 @@ code{
    ================================================================ */
 
 // ── CONFIG — fill these in ──────────────────────────────────────
-const JSONBIN_BIN_ID  = "6a1d317721f9ee59d2a3e116";
-const JSONBIN_API_KEY = "$2a$10$qPHEx7GhDDODc3fHmJjH7eaW78IwMC2Re8toTg7orSorDDMWjHjf.";
+const JSONBIN_BIN_ID  = "YOUR_BIN_ID";
+const JSONBIN_API_KEY = "YOUR_JSONBIN_API_KEY";
 
 // Default credentials — overridden by what's stored in JSONBin
 const DEFAULT_USERNAME = "admin";
@@ -721,28 +721,47 @@ let menuData = {
 
 let editingItemId = null;
 let currentImgBase64 = "";
+let sessionUser = ""; // stores the logged-in username for the session
 
 // ── LOGIN ────────────────────────────────────────────────────────
-function tryLogin() {
+async function tryLogin() {
   const un = document.getElementById("unInput").value.trim();
   const pw = document.getElementById("pwInput").value;
+  const errorEl = document.getElementById("loginError");
+  errorEl.classList.remove("on");
 
-  // Credentials stored in menuData.auth (loaded from JSONBin), fallback to defaults
-  const storedUser = (menuData.auth?.username) || DEFAULT_USERNAME;
-  const storedPass = (menuData.auth?.password) || DEFAULT_PASSWORD;
+  // First fetch live data from JSONBin so we always check latest credentials
+  let liveData = null;
+  if (JSONBIN_BIN_ID !== "YOUR_BIN_ID") {
+    try {
+      const res = await fetch(`https://api.jsonbin.io/v3/b/${JSONBIN_BIN_ID}/latest`, {
+        headers: { "X-Master-Key": JSONBIN_API_KEY, "X-Bin-Meta": "false" }
+      });
+      if (res.ok) liveData = await res.json();
+    } catch {}
+  }
 
-  if (un === storedUser && pw === storedPass) {
+  // Use live credentials if available, otherwise fall back to defaults
+  const validUser = liveData?.auth?.username || DEFAULT_USERNAME;
+  const validPass = liveData?.auth?.password || DEFAULT_PASSWORD;
+
+  if (un === validUser && pw === validPass) {
+    sessionUser = un;
+    if (liveData) menuData = liveData;
     document.getElementById("loginScreen").style.display = "none";
     document.getElementById("app").style.display = "block";
-    // loadFromJsonBin will re-check credentials from the live data
-    loadFromJsonBin();
+    setSaveStatus("saved", "Loaded ✓");
+    renderAll();
   } else {
-    document.getElementById("loginError").classList.add("on");
+    errorEl.textContent = "Incorrect username or password.";
+    errorEl.classList.add("on");
     document.getElementById("pwInput").value = "";
     document.getElementById("pwInput").focus();
   }
 }
+
 function logout() {
+  sessionUser = "";
   document.getElementById("loginScreen").style.display = "flex";
   document.getElementById("app").style.display = "none";
   document.getElementById("unInput").value = "";
@@ -763,22 +782,7 @@ async function loadFromJsonBin() {
       headers: { "X-Master-Key": JSONBIN_API_KEY, "X-Bin-Meta": "false" }
     });
     if (!res.ok) throw new Error();
-    const liveData = await res.json();
-
-    // Re-validate credentials against live data
-    const enteredUser = document.getElementById("unInput").value.trim();
-    const enteredPass = document.getElementById("pwInput").value;
-    const liveUser = liveData.auth?.username || DEFAULT_USERNAME;
-    const livePass = liveData.auth?.password || DEFAULT_PASSWORD;
-    if (enteredUser !== liveUser || enteredPass !== livePass) {
-      // Credentials changed in JSONBin since page loaded — force re-login
-      logout();
-      document.getElementById("loginError").classList.add("on");
-      document.getElementById("loginError").textContent = "Credentials updated. Please log in again.";
-      return;
-    }
-
-    menuData = liveData;
+    menuData = await res.json();
     setSaveStatus("saved", "Loaded ✓");
     renderAll();
   } catch {
