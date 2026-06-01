@@ -183,7 +183,7 @@ img{display:block}
   <div class="tabs-inner" id="tabsInner"></div>
 </nav>
 
-<p class="vat-note">All prices include VAT</p>
+
 
 <div id="loadingEl" class="loading">
   <div class="spinner"></div>
@@ -209,9 +209,28 @@ img{display:block}
   <div class="ci-list" id="ciList"></div>
   <div class="dsummary" id="dSum" style="display:none">
     <div class="drow"><span>Subtotal</span><span id="dSub"></span></div>
-    <div class="drow"><span>Tax (11%)</span><span id="dTax"></span></div>
+    <div class="drow" id="dTaxRow" style="display:none"><span id="dTaxLabel">VAT</span><span id="dTax"></span></div>
     <div class="drow tot"><span>Total</span><span id="dTot"></span></div>
-    <button class="order-btn" id="orderBtn">Place Order →</button>
+
+    <!-- CHECKOUT FORM -->
+    <div style="margin-top:16px;padding-top:16px;border-top:1px solid var(--line)">
+      <div style="font-size:13px;font-weight:700;margin-bottom:12px">Your Details</div>
+      <div style="margin-bottom:10px">
+        <input id="custName" type="text" placeholder="Your name *"
+          style="width:100%;padding:11px 14px;background:var(--card);border:1px solid var(--line-md);border-radius:var(--r);color:#fff;font-size:14px;outline:none;font-family:var(--f)"
+          onfocus="this.style.borderColor='var(--orange)'" onblur="this.style.borderColor='var(--line-md)'">
+      </div>
+      <div style="margin-bottom:16px">
+        <input id="custPhone" type="tel" placeholder="Your phone number *"
+          style="width:100%;padding:11px 14px;background:var(--card);border:1px solid var(--line-md);border-radius:var(--r);color:#fff;font-size:14px;outline:none;font-family:var(--f)"
+          onfocus="this.style.borderColor='var(--orange)'" onblur="this.style.borderColor='var(--line-md)'">
+      </div>
+      <div id="checkoutError" style="color:#ef4444;font-size:12px;margin-bottom:10px;display:none"></div>
+    </div>
+
+    <button class="order-btn" id="orderBtn">
+      <span>📲 Send Order via WhatsApp</span>
+    </button>
   </div>
 </div>
 
@@ -229,7 +248,7 @@ const SUPABASE_KEY   = "sb_publishable_vJftsz9oezOzkPkyt5rnEg_fTdX9H4l";
 const TENANT_SLUG    = "batata-box";
 // ────────────────────────────────────────────────────────────────
 
-const TENANT = { currency:"$", tax:0.11 };
+const TENANT = { currency:"$", tax:0 }; // overridden by restaurant settings
 const BADGE_LABEL = { new:"NEW", hot:"🔥 Hot", veg:"🌿 Veg", spicy:"🌶 Spicy" };
 
 let MENU_DATA = null;
@@ -258,9 +277,13 @@ async function loadMenu() {
 
     if (MENU_DATA.restaurant) {
       const r = MENU_DATA.restaurant;
-      if (r.logoUrl) { $("heroLogo").src = r.logoUrl; $("heroImgRight").src = r.logoUrl; }
-      if (r.tagline) $("heroEyebrow").textContent = r.tagline;
+      if (r.logoUrl)  { $("heroLogo").src = r.logoUrl; $("heroImgRight").src = r.logoUrl; }
+      if (r.tagline)  $("heroEyebrow").textContent = r.tagline;
       if (r.subtitle) $("heroSub").innerHTML = r.subtitle;
+      if (r.currency) TENANT.currency = r.currency;
+      TENANT.vatEnabled = r.vatEnabled === true;
+      TENANT.vatPct     = parseFloat(r.vatPct) || 11;
+      TENANT.whatsapp   = r.whatsapp || "";
     }
 
     buildTabs();
@@ -379,11 +402,27 @@ function renderCart() {
       </div>
     </div>`).join("");
 
-  const sub = entries.reduce((s,{item:it,qty}) => s+it.price*qty, 0);
-  const tax = sub * TENANT.tax;
+  const sub = entries.reduce((s,{item:it,qty}) => s + it.price*qty, 0);
+  const vatEnabled = TENANT.vatEnabled === true;
+  const tax = vatEnabled ? sub * (TENANT.vatPct / 100) : 0;
+  const total = sub + tax;
+
   $("dSub").textContent = `${TENANT.currency}${sub.toFixed(2)}`;
-  $("dTax").textContent = `${TENANT.currency}${tax.toFixed(2)}`;
-  $("dTot").textContent = `${TENANT.currency}${(sub+tax).toFixed(2)}`;
+
+  // Show/hide VAT row
+  const taxRow = $("dTaxRow");
+  if (vatEnabled) {
+    taxRow.style.display = "flex";
+    $("dTaxLabel").textContent = `VAT (${TENANT.vatPct}%)`;
+    $("dTax").textContent = `${TENANT.currency}${tax.toFixed(2)}`;
+  } else {
+    taxRow.style.display = "none";
+  }
+
+  // Hide subtotal row if no VAT (total = subtotal, no need to show both)
+  document.querySelector(".drow").style.display = vatEnabled ? "flex" : "none";
+
+  $("dTot").textContent = `${TENANT.currency}${total.toFixed(2)}`;
   $("dSum").style.display = "block";
 
   $("ciList").querySelectorAll(".qb").forEach(b => b.addEventListener("click", () => {
@@ -392,13 +431,61 @@ function renderCart() {
     updateDot(); renderCart();
   }));
 }
+
 function openCart()  { renderCart(); $("drawer").classList.add("on"); $("scrim").classList.add("on"); document.body.style.overflow="hidden"; }
 function closeCart() { $("drawer").classList.remove("on"); $("scrim").classList.remove("on"); document.body.style.overflow=""; }
 
 $("cartBtn").addEventListener("click", openCart);
 $("scrim").addEventListener("click", closeCart);
+
 $("orderBtn").addEventListener("click", () => {
-  closeCart(); Object.keys(cart).forEach(k=>delete cart[k]); updateDot(); showToast("✅ Order placed! Thank you.");
+  const name  = $("custName").value.trim();
+  const phone = $("custPhone").value.trim();
+  const errEl = $("checkoutError");
+
+  if (!name)  { errEl.textContent = "Please enter your name.";         errEl.style.display="block"; return; }
+  if (!phone) { errEl.textContent = "Please enter your phone number."; errEl.style.display="block"; return; }
+  errEl.style.display = "none";
+
+  const entries = Object.values(cart);
+  const sub   = entries.reduce((s,{item:it,qty}) => s + it.price*qty, 0);
+  const vatEnabled = TENANT.vatEnabled === true;
+  const tax   = vatEnabled ? sub * (TENANT.vatPct / 100) : 0;
+  const total = sub + tax;
+
+  // Build WhatsApp message
+  const lines = [
+    `🍟 *New Order — ${MENU_DATA?.restaurant?.name || "Batata Box"}*`,
+    ``,
+    `👤 *Name:* ${name}`,
+    `📞 *Phone:* ${phone}`,
+    ``,
+    `*Order:*`,
+    ...entries.map(({item:it,qty}) => `• ${it.name} x${qty} — ${TENANT.currency}${(it.price*qty).toFixed(2)}`),
+    ``,
+    vatEnabled ? `Subtotal: ${TENANT.currency}${sub.toFixed(2)}` : "",
+    vatEnabled ? `VAT (${TENANT.vatPct}%): ${TENANT.currency}${tax.toFixed(2)}` : "",
+    `*Total: ${TENANT.currency}${total.toFixed(2)}*`,
+  ].filter(l => l !== undefined);
+
+  const msg = encodeURIComponent(lines.join("\n"));
+  const waNumber = (TENANT.whatsapp || "").replace(/[^0-9]/g, "");
+
+  if (!waNumber) {
+    alert("WhatsApp number not configured. Please contact the restaurant.");
+    return;
+  }
+
+  // Open WhatsApp
+  window.open(`https://wa.me/${waNumber}?text=${msg}`, "_blank");
+
+  // Clear cart
+  closeCart();
+  Object.keys(cart).forEach(k => delete cart[k]);
+  updateDot();
+  $("custName").value = "";
+  $("custPhone").value = "";
+  showToast("✅ Order sent via WhatsApp!");
 });
 
 // ── SEARCH ───────────────────────────────────────────────────────

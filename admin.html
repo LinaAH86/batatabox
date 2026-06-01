@@ -462,13 +462,13 @@ code{
         <div class="page-hd">
           <div>
             <div class="page-title">Restaurant Info</div>
-            <div class="page-sub">Edit your brand details shown on the menu</div>
+            <div class="page-sub">Edit your brand details and ordering settings</div>
           </div>
           <button class="tb-btn primary" onclick="saveRestaurantInfo()">💾 Save Info</button>
         </div>
 
-        <div class="section-card">
-          <div class="section-card-hd"><div class="section-card-title">Brand Details</div></div>
+        <div class="section-card" style="margin-bottom:16px">
+          <div class="section-card-hd"><div class="section-card-title">🏪 Brand Details</div></div>
           <div style="padding:20px 20px 4px">
             <div class="info-grid">
               <div class="form-row">
@@ -486,6 +486,43 @@ code{
               <div class="form-row">
                 <label class="flabel">Logo URL</label>
                 <input class="finput" id="ri-logo" placeholder="https://… or leave empty for logo-1.png">
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="section-card" style="margin-bottom:16px">
+          <div class="section-card-hd"><div class="section-card-title">📱 WhatsApp Ordering</div></div>
+          <div style="padding:20px 20px 4px">
+            <div class="info-grid">
+              <div class="form-row">
+                <label class="flabel">WhatsApp Number</label>
+                <input class="finput" id="ri-whatsapp" placeholder="e.g. +9611234567" type="tel">
+                <div style="font-size:11px;color:var(--muted);margin-top:6px">Include country code. Orders will be sent to this number.</div>
+              </div>
+              <div class="form-row">
+                <label class="flabel">Currency Symbol</label>
+                <input class="finput" id="ri-currency" placeholder="e.g. $ or LBP or €" maxlength="5">
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="section-card">
+          <div class="section-card-hd"><div class="section-card-title">🧾 VAT Settings</div></div>
+          <div style="padding:20px 20px 16px">
+            <div class="info-grid">
+              <div class="form-row">
+                <label class="flabel">VAT</label>
+                <div style="display:flex;align-items:center;gap:12px;margin-top:4px">
+                  <button class="availability-toggle" id="ri-vat-toggle" onclick="toggleVat()" title="Toggle VAT"></button>
+                  <span id="ri-vat-label" style="font-size:13px;color:var(--muted)">VAT disabled — prices shown as-is</span>
+                </div>
+              </div>
+              <div class="form-row" id="ri-vat-pct-row" style="display:none">
+                <label class="flabel">VAT Percentage (%)</label>
+                <input class="finput" id="ri-vat-pct" placeholder="e.g. 11" type="number" min="0" max="100" step="0.1">
+                <div style="font-size:11px;color:var(--muted);margin-top:6px">Added on top of item prices at checkout.</div>
               </div>
             </div>
           </div>
@@ -992,20 +1029,45 @@ function renderCatSelect() {
 // ── RESTAURANT INFO ──────────────────────────────────────────────
 function renderRestaurantInfo() {
   const r = menuData.restaurant || {};
-  document.getElementById("ri-name").value    = r.name    || "";
-  document.getElementById("ri-tagline").value = r.tagline || "";
-  document.getElementById("ri-subtitle").value= r.subtitle|| "";
-  document.getElementById("ri-logo").value    = r.logoUrl || "";
+  document.getElementById("ri-name").value     = r.name     || "";
+  document.getElementById("ri-tagline").value  = r.tagline  || "";
+  document.getElementById("ri-subtitle").value = r.subtitle || "";
+  document.getElementById("ri-logo").value     = r.logoUrl  || "";
+  document.getElementById("ri-whatsapp").value = r.whatsapp || "";
+  document.getElementById("ri-currency").value = r.currency || "$";
+  document.getElementById("ri-vat-pct").value  = r.vatPct   || "11";
+
+  const vatOn = r.vatEnabled === true;
+  const toggle = document.getElementById("ri-vat-toggle");
+  toggle.classList.toggle("on", vatOn);
+  toggle.classList.toggle("off", !vatOn);
+  document.getElementById("ri-vat-pct-row").style.display = vatOn ? "block" : "none";
+  document.getElementById("ri-vat-label").textContent = vatOn
+    ? `VAT enabled — ${r.vatPct||11}% added at checkout`
+    : "VAT disabled — prices shown as-is";
+}
+
+function toggleVat() {
+  const r = menuData.restaurant || {};
+  r.vatEnabled = !(r.vatEnabled === true);
+  menuData.restaurant = r;
+  renderRestaurantInfo();
 }
 
 function saveRestaurantInfo() {
+  const vatOn = document.getElementById("ri-vat-toggle").classList.contains("on");
   menuData.restaurant = {
-    name:     document.getElementById("ri-name").value,
-    tagline:  document.getElementById("ri-tagline").value,
-    subtitle: document.getElementById("ri-subtitle").value,
-    logoUrl:  document.getElementById("ri-logo").value,
+    ...menuData.restaurant,
+    name:       document.getElementById("ri-name").value,
+    tagline:    document.getElementById("ri-tagline").value,
+    subtitle:   document.getElementById("ri-subtitle").value,
+    logoUrl:    document.getElementById("ri-logo").value,
+    whatsapp:   document.getElementById("ri-whatsapp").value.trim(),
+    currency:   document.getElementById("ri-currency").value || "$",
+    vatEnabled: vatOn,
+    vatPct:     parseFloat(document.getElementById("ri-vat-pct").value) || 11,
   };
-  saveToJsonBin();
+  saveToSupabase();
 }
 
 // ── ITEM MODAL ───────────────────────────────────────────────────
