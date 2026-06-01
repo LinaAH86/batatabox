@@ -220,11 +220,31 @@ img{display:block}
           style="width:100%;padding:11px 14px;background:var(--card);border:1px solid var(--line-md);border-radius:var(--r);color:#fff;font-size:14px;outline:none;font-family:var(--f)"
           onfocus="this.style.borderColor='var(--orange)'" onblur="this.style.borderColor='var(--line-md)'">
       </div>
-      <div style="margin-bottom:16px">
+      <div style="margin-bottom:14px">
         <input id="custPhone" type="tel" placeholder="Your phone number *"
           style="width:100%;padding:11px 14px;background:var(--card);border:1px solid var(--line-md);border-radius:var(--r);color:#fff;font-size:14px;outline:none;font-family:var(--f)"
           onfocus="this.style.borderColor='var(--orange)'" onblur="this.style.borderColor='var(--line-md)'">
       </div>
+
+      <!-- PICKUP / DELIVERY TOGGLE -->
+      <div style="display:flex;gap:8px;margin-bottom:12px">
+        <button id="btnPickup" onclick="setOrderType('pickup')"
+          style="flex:1;padding:10px;border-radius:var(--r);border:1px solid var(--orange);background:var(--orange);color:#fff;font-size:13px;font-weight:700;font-family:var(--f);cursor:pointer;transition:all .18s">
+          🏃 Pickup
+        </button>
+        <button id="btnDelivery" onclick="setOrderType('delivery')"
+          style="flex:1;padding:10px;border-radius:var(--r);border:1px solid var(--line-md);background:var(--subtle);color:var(--muted);font-size:13px;font-weight:700;font-family:var(--f);cursor:pointer;transition:all .18s">
+          🛵 Delivery
+        </button>
+      </div>
+
+      <!-- ADDRESS (shown only for delivery) -->
+      <div id="addressRow" style="margin-bottom:14px;display:none">
+        <textarea id="custAddress" placeholder="Delivery address *" rows="2"
+          style="width:100%;padding:11px 14px;background:var(--card);border:1px solid var(--line-md);border-radius:var(--r);color:#fff;font-size:14px;outline:none;font-family:var(--f);resize:none;line-height:1.5"
+          onfocus="this.style.borderColor='var(--orange)'" onblur="this.style.borderColor='var(--line-md)'"></textarea>
+      </div>
+
       <div id="checkoutError" style="color:#ef4444;font-size:12px;margin-bottom:10px;display:none"></div>
     </div>
 
@@ -438,20 +458,41 @@ function closeCart() { $("drawer").classList.remove("on"); $("scrim").classList.
 $("cartBtn").addEventListener("click", openCart);
 $("scrim").addEventListener("click", closeCart);
 
+// ── ORDER TYPE ────────────────────────────────────────────────────
+let orderType = "pickup";
+function setOrderType(type) {
+  orderType = type;
+  const isDelivery = type === "delivery";
+  $("addressRow").style.display = isDelivery ? "block" : "none";
+
+  // Active styles
+  $("btnPickup").style.background   = isDelivery ? "var(--subtle)"  : "var(--orange)";
+  $("btnPickup").style.borderColor  = isDelivery ? "var(--line-md)" : "var(--orange)";
+  $("btnPickup").style.color        = isDelivery ? "var(--muted)"   : "#fff";
+  $("btnDelivery").style.background = isDelivery ? "var(--orange)"  : "var(--subtle)";
+  $("btnDelivery").style.borderColor= isDelivery ? "var(--orange)"  : "var(--line-md)";
+  $("btnDelivery").style.color      = isDelivery ? "#fff"           : "var(--muted)";
+}
+
 $("orderBtn").addEventListener("click", () => {
-  const name  = $("custName").value.trim();
-  const phone = $("custPhone").value.trim();
-  const errEl = $("checkoutError");
+  const name    = $("custName").value.trim();
+  const phone   = $("custPhone").value.trim();
+  const address = $("custAddress")?.value.trim();
+  const errEl   = $("checkoutError");
 
   if (!name)  { errEl.textContent = "Please enter your name.";         errEl.style.display="block"; return; }
   if (!phone) { errEl.textContent = "Please enter your phone number."; errEl.style.display="block"; return; }
+  if (orderType === "delivery" && !address) {
+    errEl.textContent = "Please enter your delivery address.";
+    errEl.style.display = "block"; return;
+  }
   errEl.style.display = "none";
 
   const entries = Object.values(cart);
-  const sub   = entries.reduce((s,{item:it,qty}) => s + it.price*qty, 0);
+  const sub      = entries.reduce((s,{item:it,qty}) => s + it.price*qty, 0);
   const vatEnabled = TENANT.vatEnabled === true;
-  const tax   = vatEnabled ? sub * (TENANT.vatPct / 100) : 0;
-  const total = sub + tax;
+  const tax      = vatEnabled ? sub * (TENANT.vatPct / 100) : 0;
+  const total    = sub + tax;
 
   // Build WhatsApp message
   const lines = [
@@ -459,6 +500,8 @@ $("orderBtn").addEventListener("click", () => {
     ``,
     `👤 *Name:* ${name}`,
     `📞 *Phone:* ${phone}`,
+    `📦 *Type:* ${orderType === "delivery" ? "🛵 Delivery" : "🏃 Pickup"}`,
+    orderType === "delivery" ? `📍 *Address:* ${address}` : "",
     ``,
     `*Order:*`,
     ...entries.map(({item:it,qty}) => `• ${it.name} x${qty} — ${TENANT.currency}${(it.price*qty).toFixed(2)}`),
@@ -466,9 +509,9 @@ $("orderBtn").addEventListener("click", () => {
     vatEnabled ? `Subtotal: ${TENANT.currency}${sub.toFixed(2)}` : "",
     vatEnabled ? `VAT (${TENANT.vatPct}%): ${TENANT.currency}${tax.toFixed(2)}` : "",
     `*Total: ${TENANT.currency}${total.toFixed(2)}*`,
-  ].filter(l => l !== undefined);
+  ].filter(l => l !== "");
 
-  const msg = encodeURIComponent(lines.join("\n"));
+  const msg      = encodeURIComponent(lines.join("\n"));
   const waNumber = (TENANT.whatsapp || "").replace(/[^0-9]/g, "");
 
   if (!waNumber) {
@@ -476,15 +519,16 @@ $("orderBtn").addEventListener("click", () => {
     return;
   }
 
-  // Open WhatsApp
   window.open(`https://wa.me/${waNumber}?text=${msg}`, "_blank");
 
-  // Clear cart
+  // Clear cart + form
   closeCart();
   Object.keys(cart).forEach(k => delete cart[k]);
   updateDot();
-  $("custName").value = "";
-  $("custPhone").value = "";
+  $("custName").value   = "";
+  $("custPhone").value  = "";
+  if ($("custAddress")) $("custAddress").value = "";
+  setOrderType("pickup");
   showToast("✅ Order sent via WhatsApp!");
 });
 
