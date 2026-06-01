@@ -1,0 +1,1147 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>بطاطا Box — Admin</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg:#0f0f0f; --surface:#1a1a1a; --card:#222; --card2:#2a2a2a;
+  --line:rgba(255,255,255,0.08); --line-md:rgba(255,255,255,0.15);
+  --orange:#F47C20; --orange-lo:rgba(244,124,32,0.12);
+  --yellow:#F5C842; --white:#fff; --muted:rgba(255,255,255,0.45);
+  --subtle:rgba(255,255,255,0.06); --red:#ef4444; --green:#22c55e;
+  --f:'Plus Jakarta Sans',sans-serif; --r:10px; --pill:100px;
+  --ease:cubic-bezier(.4,0,.2,1);
+}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+html{-webkit-text-size-adjust:100%}
+body{font-family:var(--f);background:var(--bg);color:var(--white);min-height:100vh;-webkit-font-smoothing:antialiased}
+button{cursor:pointer;font-family:inherit;border:none;background:none}
+input,select,textarea{font-family:inherit}
+img{display:block}
+a{color:var(--orange);text-decoration:none}
+
+/* ─── LOGIN SCREEN ─── */
+#loginScreen{
+  display:flex;align-items:center;justify-content:center;
+  min-height:100vh;padding:20px;
+}
+.login-box{
+  background:var(--surface);border:1px solid var(--line-md);
+  border-radius:18px;padding:36px 32px;width:100%;max-width:380px;
+  text-align:center;
+}
+.login-logo{
+  width:70px;height:70px;object-fit:contain;border-radius:14px;
+  background:#1e1700;padding:6px;margin:0 auto 18px;
+  filter:drop-shadow(0 3px 10px rgba(244,124,32,.35));
+}
+.login-title{font-size:22px;font-weight:700;margin-bottom:4px}
+.login-title span{color:var(--orange)}
+.login-sub{font-size:13px;color:var(--muted);margin-bottom:24px}
+.login-label{display:block;font-size:12px;font-weight:600;color:var(--muted);text-align:left;margin-bottom:6px;letter-spacing:.4px;text-transform:uppercase}
+.login-input{
+  width:100%;padding:12px 16px;background:var(--card);
+  border:1px solid var(--line-md);border-radius:var(--r);
+  color:var(--white);font-size:14px;outline:none;margin-bottom:16px;
+  transition:border-color .18s;
+}
+.login-input:focus{border-color:var(--orange)}
+.login-btn{
+  width:100%;padding:13px;background:var(--orange);border-radius:var(--pill);
+  color:#fff;font-size:15px;font-weight:700;letter-spacing:.3px;
+  box-shadow:0 4px 18px rgba(244,124,32,.4);transition:transform .15s,box-shadow .15s;margin-top:4px;
+}
+.login-btn:hover{transform:translateY(-2px);box-shadow:0 8px 22px rgba(244,124,32,.5)}
+.login-error{color:#ef4444;font-size:13px;margin-top:10px;display:none}
+.login-error.on{display:block}
+
+/* ─── MAIN APP ─── */
+#app{display:none}
+
+/* TOPBAR */
+.topbar{
+  background:var(--surface);border-bottom:1px solid var(--line);
+  padding:0 24px;
+  display:flex;align-items:center;justify-content:space-between;
+  height:58px;position:sticky;top:0;z-index:100;
+}
+.tb-left{display:flex;align-items:center;gap:12px}
+.tb-logo{width:34px;height:34px;border-radius:8px;object-fit:contain;background:#1e1700;padding:2px}
+.tb-name{font-size:16px;font-weight:700}
+.tb-name span{color:var(--orange)}
+.tb-badge{
+  padding:3px 10px;border-radius:var(--pill);
+  background:var(--orange-lo);color:var(--orange);
+  font-size:11px;font-weight:600;letter-spacing:.5px;
+}
+.tb-right{display:flex;align-items:center;gap:10px}
+.tb-btn{
+  padding:8px 16px;border-radius:var(--pill);
+  font-size:13px;font-weight:600;
+  border:1px solid var(--line-md);color:var(--muted);
+  background:var(--subtle);transition:all .18s;
+  display:flex;align-items:center;gap:6px;
+}
+.tb-btn:hover{color:var(--white);border-color:var(--line-md)}
+.tb-btn.primary{background:var(--orange);border-color:var(--orange);color:#fff;box-shadow:0 3px 12px rgba(244,124,32,.35)}
+.tb-btn.primary:hover{background:#ff9340}
+.tb-btn.danger{background:rgba(239,68,68,.12);border-color:rgba(239,68,68,.3);color:#ef4444}
+.tb-btn.danger:hover{background:rgba(239,68,68,.2)}
+
+/* LAYOUT */
+.layout{display:flex;height:calc(100vh - 58px);overflow:hidden}
+
+/* SIDEBAR */
+.sidebar{
+  width:220px;flex-shrink:0;
+  background:var(--surface);border-right:1px solid var(--line);
+  overflow-y:auto;padding:16px 0;
+}
+.sidebar-section{
+  padding:0 12px;margin-bottom:6px;
+}
+.sidebar-label{
+  font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:2px;
+  color:var(--muted);padding:0 6px;margin-bottom:6px;
+}
+.nav-item{
+  display:flex;align-items:center;gap:9px;
+  padding:9px 12px;border-radius:var(--r);
+  font-size:13px;font-weight:500;color:var(--muted);
+  transition:all .15s;width:100%;text-align:left;
+}
+.nav-item .ico{font-size:16px;width:20px;text-align:center}
+.nav-item:hover{background:var(--subtle);color:var(--white)}
+.nav-item.on{background:var(--orange-lo);color:var(--orange);font-weight:600}
+
+/* MAIN CONTENT */
+.main{flex:1;overflow-y:auto;padding:28px 28px 60px}
+
+/* PANEL */
+.panel{display:none}
+.panel.on{display:block}
+
+/* PAGE HEADER */
+.page-hd{
+  display:flex;align-items:center;justify-content:space-between;
+  margin-bottom:24px;gap:12px;flex-wrap:wrap;
+}
+.page-title{font-size:22px;font-weight:700;letter-spacing:-.3px}
+.page-sub{font-size:13px;color:var(--muted);margin-top:2px}
+
+/* STATS ROW */
+.stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:12px;margin-bottom:28px}
+.stat-card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:16px 18px}
+.stat-label{font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:1px;margin-bottom:6px}
+.stat-val{font-size:26px;font-weight:700;line-height:1}
+.stat-val.orange{color:var(--orange)}
+.stat-val.yellow{color:var(--yellow)}
+
+/* SECTION CARD */
+.section-card{background:var(--card);border:1px solid var(--line);border-radius:14px;overflow:hidden;margin-bottom:20px}
+.section-card-hd{
+  display:flex;align-items:center;justify-content:space-between;
+  padding:16px 20px;border-bottom:1px solid var(--line);
+}
+.section-card-title{font-size:15px;font-weight:700}
+
+/* ITEM LIST (admin) */
+.admin-item{
+  display:flex;align-items:center;gap:12px;
+  padding:14px 20px;border-bottom:1px solid var(--line);
+  transition:background .15s;
+}
+.admin-item:last-child{border-bottom:none}
+.admin-item:hover{background:rgba(255,255,255,.02)}
+.ai-thumb{
+  width:52px;height:52px;border-radius:8px;
+  object-fit:cover;flex-shrink:0;background:var(--surface);
+  display:flex;align-items:center;justify-content:center;font-size:22px;
+}
+.ai-info{flex:1;min-width:0}
+.ai-name{font-size:14px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.ai-meta{font-size:12px;color:var(--muted);margin-top:3px}
+.ai-price{font-size:15px;font-weight:700;color:var(--yellow);flex-shrink:0;white-space:nowrap}
+.ai-actions{display:flex;gap:6px;flex-shrink:0}
+.icon-btn{
+  width:32px;height:32px;border-radius:8px;
+  display:flex;align-items:center;justify-content:center;font-size:14px;
+  transition:background .15s;border:1px solid var(--line);
+  background:var(--subtle);color:var(--muted);
+}
+.icon-btn:hover{color:var(--white);border-color:var(--line-md)}
+.icon-btn.del:hover{background:rgba(239,68,68,.15);border-color:rgba(239,68,68,.3);color:#ef4444}
+.availability-toggle{
+  width:38px;height:22px;border-radius:11px;
+  border:none;cursor:pointer;position:relative;
+  transition:background .2s;flex-shrink:0;
+}
+.availability-toggle::after{
+  content:'';position:absolute;top:3px;left:3px;
+  width:16px;height:16px;border-radius:50%;
+  background:#fff;transition:transform .2s;
+}
+.availability-toggle.on{background:var(--green)}
+.availability-toggle.off{background:rgba(255,255,255,.2)}
+.availability-toggle.on::after{transform:translateX(16px)}
+
+/* MODAL OVERLAY */
+.modal-overlay{
+  position:fixed;inset:0;z-index:500;
+  background:rgba(0,0,0,.65);
+  display:none;align-items:center;justify-content:center;padding:20px;
+}
+.modal-overlay.on{display:flex}
+.modal{
+  background:var(--surface);border:1px solid var(--line-md);
+  border-radius:18px;width:100%;max-width:520px;
+  max-height:90vh;overflow-y:auto;
+}
+.modal-hd{
+  display:flex;align-items:center;justify-content:space-between;
+  padding:20px 24px 0;margin-bottom:20px;
+}
+.modal-title{font-size:18px;font-weight:700}
+.modal-close{
+  width:32px;height:32px;border-radius:8px;
+  background:var(--subtle);border:1px solid var(--line);
+  color:var(--muted);font-size:18px;
+  display:flex;align-items:center;justify-content:center;
+  transition:all .15s;
+}
+.modal-close:hover{background:rgba(239,68,68,.15);color:#ef4444;border-color:rgba(239,68,68,.3)}
+.modal-body{padding:0 24px 24px}
+
+/* FORM */
+.form-row{margin-bottom:16px}
+.form-row-2{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:16px}
+.flabel{font-size:12px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px;display:block}
+.finput{
+  width:100%;padding:11px 14px;background:var(--card);
+  border:1px solid var(--line-md);border-radius:var(--r);
+  color:var(--white);font-size:14px;outline:none;transition:border-color .18s;
+}
+.finput:focus{border-color:var(--orange)}
+.finput::placeholder{color:rgba(255,255,255,.2)}
+textarea.finput{resize:vertical;min-height:80px;line-height:1.5}
+select.finput option{background:#222}
+
+/* IMAGE UPLOADER */
+.img-upload-area{
+  border:2px dashed var(--line-md);border-radius:var(--r);
+  padding:20px;text-align:center;cursor:pointer;
+  transition:border-color .18s,background .18s;position:relative;
+}
+.img-upload-area:hover,.img-upload-area.drag{border-color:var(--orange);background:var(--orange-lo)}
+.img-upload-area input{position:absolute;inset:0;opacity:0;cursor:pointer;width:100%}
+.img-preview{
+  width:80px;height:80px;border-radius:10px;
+  object-fit:cover;margin:0 auto 10px;display:none;
+}
+.img-preview.on{display:block}
+.img-upload-ico{font-size:28px;margin-bottom:8px}
+.img-upload-text{font-size:13px;color:var(--muted)}
+.img-upload-text strong{color:var(--orange)}
+.img-url-row{display:flex;gap:8px;margin-top:10px;align-items:center}
+.img-url-or{font-size:11px;color:var(--muted);white-space:nowrap}
+
+/* BADGE SELECTOR */
+.badge-opts{display:flex;gap:8px;flex-wrap:wrap}
+.badge-opt{
+  padding:5px 12px;border-radius:var(--pill);
+  font-size:11px;font-weight:700;letter-spacing:.5px;
+  border:1px solid var(--line-md);color:var(--muted);
+  background:var(--subtle);transition:all .15s;cursor:pointer;
+}
+.badge-opt.sel-new{background:var(--orange);border-color:var(--orange);color:#fff}
+.badge-opt.sel-hot{background:#e53e3e;border-color:#e53e3e;color:#fff}
+.badge-opt.sel-veg{background:#22c55e;border-color:#22c55e;color:#fff}
+.badge-opt.sel-spicy{background:#c2410c;border-color:#c2410c;color:#fff}
+
+/* FORM FOOTER */
+.modal-footer{
+  display:flex;gap:10px;justify-content:flex-end;
+  padding-top:16px;border-top:1px solid var(--line);margin-top:4px;
+}
+.btn{
+  padding:10px 20px;border-radius:var(--pill);
+  font-size:14px;font-weight:600;border:1px solid var(--line-md);
+  color:var(--muted);background:var(--subtle);transition:all .18s;
+}
+.btn:hover{color:var(--white);border-color:var(--line-md)}
+.btn-primary{background:var(--orange);border-color:var(--orange);color:#fff;box-shadow:0 3px 12px rgba(244,124,32,.3)}
+.btn-primary:hover{background:#ff9340}
+
+/* CAT CHIPS */
+.cat-chips{display:flex;flex-wrap:wrap;gap:8px;padding:16px 20px}
+.cat-chip{
+  display:flex;align-items:center;gap:8px;
+  padding:8px 14px;background:var(--card2);
+  border:1px solid var(--line);border-radius:var(--r);
+  font-size:13px;transition:background .15s;
+}
+.cat-chip-ico{font-size:16px}
+.cat-chip-label{font-weight:600}
+.cat-chip-count{font-size:11px;color:var(--muted)}
+.cat-chip-del{
+  width:20px;height:20px;border-radius:50%;
+  background:var(--subtle);color:var(--muted);font-size:12px;
+  display:flex;align-items:center;justify-content:center;
+  transition:all .15s;margin-left:2px;
+}
+.cat-chip-del:hover{background:rgba(239,68,68,.2);color:#ef4444}
+
+/* RESTAURANT INFO FORM */
+.info-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+@media(max-width:600px){.info-grid{grid-template-columns:1fr}}
+
+/* SAVE STATUS */
+.save-status{
+  display:flex;align-items:center;gap:8px;
+  font-size:13px;color:var(--muted);
+  transition:color .3s;
+}
+.save-status .dot{
+  width:8px;height:8px;border-radius:50%;background:var(--muted);
+  transition:background .3s;
+}
+.save-status.saving .dot{background:var(--yellow);animation:pulse .8s infinite}
+.save-status.saved .dot{background:var(--green)}
+.save-status.saved{color:var(--green)}
+.save-status.error .dot{background:var(--red)}
+.save-status.error{color:var(--red)}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.4}}
+
+/* SETUP GUIDE */
+.setup-guide{
+  background:var(--orange-lo);border:1px solid rgba(244,124,32,.25);
+  border-radius:14px;padding:20px 22px;margin-bottom:24px;
+}
+.setup-title{font-size:15px;font-weight:700;color:var(--orange);margin-bottom:10px}
+.setup-step{
+  display:flex;gap:12px;align-items:flex-start;
+  margin-bottom:10px;font-size:13px;line-height:1.5;
+}
+.setup-step:last-child{margin-bottom:0}
+.step-num{
+  width:22px;height:22px;border-radius:50%;
+  background:var(--orange);color:#fff;
+  font-size:11px;font-weight:700;flex-shrink:0;
+  display:flex;align-items:center;justify-content:center;margin-top:1px;
+}
+code{
+  background:rgba(255,255,255,.08);padding:1px 6px;
+  border-radius:4px;font-size:12px;font-family:monospace;
+  color:var(--yellow);
+}
+
+/* RESPONSIVE */
+@media(max-width:680px){
+  .sidebar{width:190px}
+  .main{padding:18px 16px 60px}
+  .form-row-2{grid-template-columns:1fr}
+}
+@media(max-width:520px){
+  .sidebar{display:none}
+  .layout{flex-direction:column}
+  .main{flex:1;overflow-y:auto}
+}
+
+/* SCROLLBAR */
+::-webkit-scrollbar{width:4px}
+::-webkit-scrollbar-track{background:transparent}
+::-webkit-scrollbar-thumb{background:rgba(255,255,255,.08);border-radius:2px}
+</style>
+</head>
+<body>
+
+<!-- LOGIN SCREEN -->
+<div id="loginScreen">
+  <div class="login-box">
+    <img class="login-logo" src="logo-1.png" alt="بطاطا Box" onerror="this.style.display='none'">
+    <div class="login-title"><span>بطاطا</span> Box</div>
+    <div class="login-sub">Admin Panel — Menu Editor</div>
+    <label class="login-label" for="unInput">Username</label>
+    <input class="login-input" id="unInput" type="text" placeholder="Enter username…" autocomplete="username">
+    <label class="login-label" for="pwInput">Password</label>
+    <input class="login-input" id="pwInput" type="password" placeholder="Enter password…" autocomplete="current-password">
+    <button class="login-btn" id="loginBtn">Sign In →</button>
+    <div class="login-error" id="loginError">Incorrect username or password.</div>
+  </div>
+</div>
+
+<!-- MAIN APP -->
+<div id="app">
+
+  <!-- TOPBAR -->
+  <div class="topbar">
+    <div class="tb-left">
+      <img class="tb-logo" src="logo-1.png" alt="" onerror="this.style.display='none'">
+      <div class="tb-name"><span>بطاطا</span> Box</div>
+      <div class="tb-badge">Admin</div>
+    </div>
+    <div class="tb-right">
+      <div class="save-status" id="saveStatus">
+        <div class="dot"></div>
+        <span id="saveStatusText">All saved</span>
+      </div>
+      <button class="tb-btn primary" id="saveBtn" onclick="saveToJsonBin()">💾 Save Menu</button>
+      <a href="index.html" target="_blank" class="tb-btn">👁️ Preview</a>
+      <button class="tb-btn danger" onclick="logout()">Sign out</button>
+    </div>
+  </div>
+
+  <div class="layout">
+    <!-- SIDEBAR -->
+    <nav class="sidebar">
+      <div class="sidebar-section">
+        <div class="sidebar-label">Menu</div>
+        <button class="nav-item on" onclick="showPanel('items')" id="nav-items">
+          <span class="ico">🍽️</span> Menu Items
+        </button>
+        <button class="nav-item" onclick="showPanel('categories')" id="nav-categories">
+          <span class="ico">📂</span> Categories
+        </button>
+      </div>
+      <div class="sidebar-section" style="margin-top:8px">
+        <div class="sidebar-label">Settings</div>
+        <button class="nav-item" onclick="showPanel('restaurant')" id="nav-restaurant">
+          <span class="ico">🏪</span> Restaurant Info
+        </button>
+        <button class="nav-item" onclick="showPanel('security')" id="nav-security">
+          <span class="ico">🔐</span> Security
+        </button>
+        <button class="nav-item" onclick="showPanel('setup')" id="nav-setup">
+          <span class="ico">⚙️</span> Setup Guide
+        </button>
+      </div>
+    </nav>
+
+    <!-- MAIN -->
+    <main class="main">
+
+      <!-- ══ ITEMS PANEL ══ -->
+      <div class="panel on" id="panel-items">
+        <div class="page-hd">
+          <div>
+            <div class="page-title">Menu Items</div>
+            <div class="page-sub">Add, edit, or remove items from your menu</div>
+          </div>
+          <button class="tb-btn primary" onclick="openItemModal()">+ Add Item</button>
+        </div>
+
+        <div class="stats" id="statsRow"></div>
+
+        <div id="itemsByCat"></div>
+      </div>
+
+      <!-- ══ CATEGORIES PANEL ══ -->
+      <div class="panel" id="panel-categories">
+        <div class="page-hd">
+          <div>
+            <div class="page-title">Categories</div>
+            <div class="page-sub">Organise your menu into sections</div>
+          </div>
+          <button class="tb-btn primary" onclick="openCatModal()">+ Add Category</button>
+        </div>
+
+        <div class="section-card">
+          <div class="section-card-hd">
+            <div class="section-card-title">All Categories</div>
+          </div>
+          <div class="cat-chips" id="catChips"></div>
+        </div>
+      </div>
+
+      <!-- ══ RESTAURANT PANEL ══ -->
+      <div class="panel" id="panel-restaurant">
+        <div class="page-hd">
+          <div>
+            <div class="page-title">Restaurant Info</div>
+            <div class="page-sub">Edit your brand details shown on the menu</div>
+          </div>
+          <button class="tb-btn primary" onclick="saveRestaurantInfo()">💾 Save Info</button>
+        </div>
+
+        <div class="section-card">
+          <div class="section-card-hd"><div class="section-card-title">Brand Details</div></div>
+          <div style="padding:20px 20px 4px">
+            <div class="info-grid">
+              <div class="form-row">
+                <label class="flabel">Restaurant Name</label>
+                <input class="finput" id="ri-name" placeholder="e.g. بطاطا Box">
+              </div>
+              <div class="form-row">
+                <label class="flabel">Tagline (hero eyebrow)</label>
+                <input class="finput" id="ri-tagline" placeholder="e.g. Fresh & Hot Every Day">
+              </div>
+              <div class="form-row">
+                <label class="flabel">Subtitle</label>
+                <input class="finput" id="ri-subtitle" placeholder="e.g. Crispy, bold & loaded.">
+              </div>
+              <div class="form-row">
+                <label class="flabel">Logo URL</label>
+                <input class="finput" id="ri-logo" placeholder="https://… or leave empty for logo-1.png">
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ══ SECURITY PANEL ══ -->
+      <div class="panel" id="panel-security">
+        <div class="page-hd">
+          <div>
+            <div class="page-title">Security</div>
+            <div class="page-sub">Change your admin username and password</div>
+          </div>
+        </div>
+
+        <div class="section-card" style="max-width:480px">
+          <div class="section-card-hd"><div class="section-card-title">🔐 Change Credentials</div></div>
+          <div style="padding:20px">
+
+            <div class="form-row">
+              <label class="flabel">Current Password *</label>
+              <input class="finput" id="sec-current-pw" type="password" placeholder="Enter your current password">
+            </div>
+
+            <div style="height:1px;background:var(--line);margin:4px 0 20px"></div>
+
+            <div class="form-row">
+              <label class="flabel">New Username</label>
+              <input class="finput" id="sec-new-username" type="text" placeholder="Leave blank to keep current" autocomplete="off">
+            </div>
+
+            <div class="form-row">
+              <label class="flabel">New Password</label>
+              <input class="finput" id="sec-new-pw" type="password" placeholder="Leave blank to keep current" autocomplete="new-password">
+            </div>
+
+            <div class="form-row">
+              <label class="flabel">Confirm New Password</label>
+              <input class="finput" id="sec-confirm-pw" type="password" placeholder="Repeat new password" autocomplete="new-password">
+            </div>
+
+            <div id="sec-msg" style="font-size:13px;margin-bottom:14px;display:none;padding:10px 14px;border-radius:8px"></div>
+
+            <button class="btn btn-primary" style="width:100%" onclick="saveCredentials()">Update Credentials</button>
+
+            <div style="margin-top:16px;padding:12px 14px;background:var(--orange-lo);border:1px solid rgba(244,124,32,.2);border-radius:8px;font-size:12px;color:var(--muted);line-height:1.6">
+              💡 Credentials are saved to JSONBin alongside your menu data. Make sure you've configured JSONBin first.
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ══ SETUP PANEL ══ -->
+      <div class="panel" id="panel-setup">
+        <div class="page-hd">
+          <div>
+            <div class="page-title">Setup Guide</div>
+            <div class="page-sub">Connect JSONBin and deploy to Vercel</div>
+          </div>
+        </div>
+
+        <div class="setup-guide">
+          <div class="setup-title">🚀 Get live in 5 minutes</div>
+
+          <div class="setup-step">
+            <div class="step-num">1</div>
+            <div><strong>Create a free JSONBin account</strong> at <a href="https://jsonbin.io" target="_blank">jsonbin.io</a> → go to <em>API Keys</em> and copy your Master Key</div>
+          </div>
+          <div class="setup-step">
+            <div class="step-num">2</div>
+            <div><strong>Create a new Bin</strong> → click <em>Create Bin</em> → paste the starter JSON below → save. Copy the Bin ID from the URL.</div>
+          </div>
+          <div class="setup-step">
+            <div class="step-num">3</div>
+            <div>Open <code>index.html</code> and <code>admin.html</code> → find the <code>CONFIG</code> section at the top of the <code>&lt;script&gt;</code> → paste your <code>JSONBIN_BIN_ID</code> and <code>JSONBIN_API_KEY</code></div>
+          </div>
+          <div class="setup-step">
+            <div class="step-num">4</div>
+            <div>In <code>admin.html</code> also set <code>ADMIN_PASSWORD</code> to your chosen password</div>
+          </div>
+          <div class="setup-step">
+            <div class="step-num">5</div>
+            <div><strong>Deploy to Vercel</strong> — push your folder (index.html + admin.html + logo-1.png) to GitHub, then import in Vercel. Done! 🎉</div>
+          </div>
+          <div class="setup-step">
+            <div class="step-num">6</div>
+            <div><strong>Generate your QR code</strong> at <a href="https://qr.io" target="_blank">qr.io</a> pointing to your Vercel URL — print and place on tables</div>
+          </div>
+        </div>
+
+        <div class="section-card">
+          <div class="section-card-hd"><div class="section-card-title">Starter JSON — paste into JSONBin</div></div>
+          <div style="padding:16px 20px">
+            <pre id="starterJson" style="background:var(--bg);border:1px solid var(--line);border-radius:8px;padding:16px;font-size:12px;font-family:monospace;color:rgba(255,255,255,.7);overflow-x:auto;line-height:1.6;white-space:pre-wrap"></pre>
+            <button class="btn btn-primary" style="margin-top:12px" onclick="copyStarterJson()">📋 Copy JSON</button>
+          </div>
+        </div>
+      </div>
+
+    </main>
+  </div>
+</div>
+
+<!-- ══ ITEM MODAL ══ -->
+<div class="modal-overlay" id="itemModal">
+  <div class="modal">
+    <div class="modal-hd">
+      <div class="modal-title" id="itemModalTitle">Add Item</div>
+      <button class="modal-close" onclick="closeItemModal()">✕</button>
+    </div>
+    <div class="modal-body">
+      <input type="hidden" id="item-id">
+
+      <div class="form-row-2">
+        <div>
+          <label class="flabel">Item Name *</label>
+          <input class="finput" id="item-name" placeholder="e.g. Classic Fries">
+        </div>
+        <div>
+          <label class="flabel">Category *</label>
+          <select class="finput" id="item-cat"></select>
+        </div>
+      </div>
+
+      <div class="form-row">
+        <label class="flabel">Description</label>
+        <textarea class="finput" id="item-desc" placeholder="What's in it? Ingredients, flavours…"></textarea>
+      </div>
+
+      <div class="form-row-2">
+        <div>
+          <label class="flabel">Price *</label>
+          <input class="finput" id="item-price" type="number" step="0.01" min="0" placeholder="0.00">
+        </div>
+        <div>
+          <label class="flabel">Badge</label>
+          <div class="badge-opts" id="badgeOpts">
+            <button class="badge-opt" data-badge="">None</button>
+            <button class="badge-opt" data-badge="new">NEW</button>
+            <button class="badge-opt" data-badge="hot">🔥 Hot</button>
+            <button class="badge-opt" data-badge="veg">🌿 Veg</button>
+            <button class="badge-opt" data-badge="spicy">🌶 Spicy</button>
+          </div>
+          <input type="hidden" id="item-badge" value="">
+        </div>
+      </div>
+
+      <div class="form-row">
+        <label class="flabel">Item Image</label>
+        <div class="img-upload-area" id="imgUploadArea">
+          <input type="file" id="imgFileInput" accept="image/*" onchange="handleImageUpload(event)">
+          <img class="img-preview" id="imgPreview" alt="Preview">
+          <div class="img-upload-ico" id="imgUploadIco">📷</div>
+          <div class="img-upload-text" id="imgUploadText"><strong>Click to upload</strong> or drag & drop<br><span style="font-size:11px">PNG, JPG, WEBP up to 2MB</span></div>
+        </div>
+        <div class="img-url-row">
+          <span class="img-url-or">or paste URL</span>
+          <input class="finput" id="item-img-url" placeholder="https://…" style="flex:1" oninput="previewFromUrl(this.value)">
+        </div>
+      </div>
+
+      <div class="modal-footer">
+        <button class="btn" onclick="closeItemModal()">Cancel</button>
+        <button class="btn btn-primary" onclick="saveItem()">Save Item</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ══ CATEGORY MODAL ══ -->
+<div class="modal-overlay" id="catModal">
+  <div class="modal" style="max-width:380px">
+    <div class="modal-hd">
+      <div class="modal-title">Add Category</div>
+      <button class="modal-close" onclick="closeCatModal()">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="form-row">
+        <label class="flabel">Category Name *</label>
+        <input class="finput" id="cat-label" placeholder="e.g. Fries">
+      </div>
+      <div class="form-row">
+        <label class="flabel">Emoji Icon</label>
+        <input class="finput" id="cat-ico" placeholder="🍟" maxlength="4">
+      </div>
+      <div class="modal-footer">
+        <button class="btn" onclick="closeCatModal()">Cancel</button>
+        <button class="btn btn-primary" onclick="saveCat()">Add Category</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+/* ================================================================
+   OCHO POS — Admin Panel
+   ================================================================ */
+
+// ── CONFIG — fill these in ──────────────────────────────────────
+const JSONBIN_BIN_ID  = "6a1d317721f9ee59d2a3e116";
+const JSONBIN_API_KEY = "$2a$10$qPHEx7GhDDODc3fHmJjH7eaW78IwMC2Re8toTg7orSorDDMWjHjf.";
+
+// Default credentials — overridden by what's stored in JSONBin
+const DEFAULT_USERNAME = "admin";
+const DEFAULT_PASSWORD = "batatabox2024";
+// ────────────────────────────────────────────────────────────────
+
+// ── STATE ────────────────────────────────────────────────────────
+let menuData = {
+  auth: { username:"admin", password:"batatabox2024" },
+  restaurant: { name:"بطاطا Box", tagline:"Fresh & Hot Every Day", subtitle:"Crispy, bold & loaded.", logoUrl:"" },
+  categories: [
+    { id:"fries",    label:"Fries",    ico:"🍟" },
+    { id:"burgers",  label:"Burgers",  ico:"🍔" },
+    { id:"wraps",    label:"Wraps",    ico:"🌯" },
+    { id:"chicken",  label:"Chicken",  ico:"🍗" },
+    { id:"sides",    label:"Sides",    ico:"🥗" },
+    { id:"drinks",   label:"Drinks",   ico:"🥤" },
+    { id:"desserts", label:"Desserts", ico:"🍦" },
+  ],
+  items: [
+    { id:"1", cat:"fries",   name:"Classic Fries",      desc:"Golden crispy fries with our signature sea salt blend",           price:3.50, img:"https://images.unsplash.com/photo-1576107232684-1279f390859f?w=200&q=75", badge:"hot",   available:true },
+    { id:"2", cat:"fries",   name:"Loaded Cheese Fries",desc:"Thick-cut fries smothered in cheddar, jalapeños & bacon bits",   price:6.50, img:"https://images.unsplash.com/photo-1573080496219-bb080dd4f877?w=200&q=75", badge:"spicy", available:true },
+    { id:"3", cat:"fries",   name:"Truffle Fries",      desc:"Tossed in truffle oil, parmesan & fresh herbs",                  price:7.90, img:"https://images.unsplash.com/photo-1630431341973-02e1b662ec35?w=200&q=75", badge:"new",   available:true },
+    { id:"4", cat:"burgers", name:"Smash Burger",       desc:"Double smashed patty, American cheese, pickles & house sauce",   price:11.90,img:"https://images.unsplash.com/photo-1568901346375-23c9450c58cd?w=200&q=75", badge:"hot",   available:true },
+    { id:"5", cat:"burgers", name:"BBQ Bacon Burger",   desc:"Angus beef, streaky bacon, BBQ glaze & caramelised onions",      price:13.50,img:"https://images.unsplash.com/photo-1553979459-d2229ba7433b?w=200&q=75", badge:"",      available:true },
+    { id:"6", cat:"wraps",   name:"Shawarma Wrap",      desc:"Marinated chicken, garlic sauce, pickles & fries inside",        price:9.90, img:"https://images.unsplash.com/photo-1529006557810-274b9b2fc783?w=200&q=75", badge:"",      available:true },
+    { id:"7", cat:"chicken", name:"Chicken Tenders",    desc:"Buttermilk-marinated, crispy coating, honey mustard dip",        price:9.90, img:"https://images.unsplash.com/photo-1562802378-063ec186a863?w=200&q=75", badge:"hot",   available:true },
+    { id:"8", cat:"drinks",  name:"Fresh Lemonade",     desc:"Squeezed lemon, mint & sugar syrup on crushed ice",              price:4.50, img:"https://images.unsplash.com/photo-1621263764928-df1444c5e859?w=200&q=75", badge:"",      available:true },
+    { id:"9", cat:"desserts",name:"Churros",            desc:"Cinnamon-sugar dough sticks with warm chocolate dip",            price:5.90, img:"https://images.unsplash.com/photo-1624803515049-95e2b6c5a9a2?w=200&q=75", badge:"new",   available:true },
+  ]
+};
+
+let editingItemId = null;
+let currentImgBase64 = "";
+
+// ── LOGIN ────────────────────────────────────────────────────────
+function tryLogin() {
+  const un = document.getElementById("unInput").value.trim();
+  const pw = document.getElementById("pwInput").value;
+
+  // Credentials stored in menuData.auth (loaded from JSONBin), fallback to defaults
+  const storedUser = (menuData.auth?.username) || DEFAULT_USERNAME;
+  const storedPass = (menuData.auth?.password) || DEFAULT_PASSWORD;
+
+  if (un === storedUser && pw === storedPass) {
+    document.getElementById("loginScreen").style.display = "none";
+    document.getElementById("app").style.display = "block";
+    // loadFromJsonBin will re-check credentials from the live data
+    loadFromJsonBin();
+  } else {
+    document.getElementById("loginError").classList.add("on");
+    document.getElementById("pwInput").value = "";
+    document.getElementById("pwInput").focus();
+  }
+}
+function logout() {
+  document.getElementById("loginScreen").style.display = "flex";
+  document.getElementById("app").style.display = "none";
+  document.getElementById("unInput").value = "";
+  document.getElementById("pwInput").value = "";
+}
+document.getElementById("loginBtn").addEventListener("click", tryLogin);
+document.getElementById("pwInput").addEventListener("keydown", e => { if (e.key === "Enter") tryLogin(); });
+document.getElementById("unInput").addEventListener("keydown", e => { if (e.key === "Enter") document.getElementById("pwInput").focus(); });
+
+// ── JSONBIN ──────────────────────────────────────────────────────
+async function loadFromJsonBin() {
+  if (JSONBIN_BIN_ID === "YOUR_BIN_ID") {
+    renderAll(); showPanel("setup"); return;
+  }
+  try {
+    setSaveStatus("saving", "Loading…");
+    const res = await fetch(`https://api.jsonbin.io/v3/b/${JSONBIN_BIN_ID}/latest`, {
+      headers: { "X-Master-Key": JSONBIN_API_KEY, "X-Bin-Meta": "false" }
+    });
+    if (!res.ok) throw new Error();
+    const liveData = await res.json();
+
+    // Re-validate credentials against live data
+    const enteredUser = document.getElementById("unInput").value.trim();
+    const enteredPass = document.getElementById("pwInput").value;
+    const liveUser = liveData.auth?.username || DEFAULT_USERNAME;
+    const livePass = liveData.auth?.password || DEFAULT_PASSWORD;
+    if (enteredUser !== liveUser || enteredPass !== livePass) {
+      // Credentials changed in JSONBin since page loaded — force re-login
+      logout();
+      document.getElementById("loginError").classList.add("on");
+      document.getElementById("loginError").textContent = "Credentials updated. Please log in again.";
+      return;
+    }
+
+    menuData = liveData;
+    setSaveStatus("saved", "Loaded ✓");
+    renderAll();
+  } catch {
+    setSaveStatus("error", "Load failed — using local data");
+    renderAll();
+  }
+}
+
+// ── SAVE CREDENTIALS ─────────────────────────────────────────────
+function saveCredentials() {
+  const currentPw  = document.getElementById("sec-current-pw").value;
+  const newUsername= document.getElementById("sec-new-username").value.trim();
+  const newPw      = document.getElementById("sec-new-pw").value;
+  const confirmPw  = document.getElementById("sec-confirm-pw").value;
+  const msgEl      = document.getElementById("sec-msg");
+
+  function showSecMsg(text, isError) {
+    msgEl.style.display = "block";
+    msgEl.style.background = isError ? "rgba(239,68,68,.12)" : "rgba(34,197,94,.12)";
+    msgEl.style.color = isError ? "#ef4444" : "#22c55e";
+    msgEl.style.border = `1px solid ${isError ? "rgba(239,68,68,.25)" : "rgba(34,197,94,.25)"}`;
+    msgEl.textContent = text;
+  }
+
+  // Validate current password
+  const storedPass = menuData.auth?.password || DEFAULT_PASSWORD;
+  if (currentPw !== storedPass) { showSecMsg("❌ Current password is incorrect.", true); return; }
+
+  // Validate new password match
+  if (newPw && newPw !== confirmPw) { showSecMsg("❌ New passwords don't match.", true); return; }
+  if (newPw && newPw.length < 6)    { showSecMsg("❌ Password must be at least 6 characters.", true); return; }
+
+  // Nothing to change?
+  if (!newUsername && !newPw) { showSecMsg("⚠️ Enter a new username or password to update.", true); return; }
+
+  // Apply
+  if (!menuData.auth) menuData.auth = {};
+  if (newUsername) menuData.auth.username = newUsername;
+  if (newPw)       menuData.auth.password = newPw;
+
+  // Clear fields
+  document.getElementById("sec-current-pw").value  = "";
+  document.getElementById("sec-new-username").value = "";
+  document.getElementById("sec-new-pw").value       = "";
+  document.getElementById("sec-confirm-pw").value   = "";
+
+  showSecMsg("✅ Credentials updated! Saving to JSONBin…", false);
+  saveToJsonBin().then(() => {
+    showSecMsg("✅ Saved! You'll use the new credentials next time you log in.", false);
+  });
+}
+
+async function saveToJsonBin() {
+  if (JSONBIN_BIN_ID === "YOUR_BIN_ID") {
+    alert("⚠️ Please configure your JSONBin ID and API Key first.\n\nSee the Setup Guide panel.");
+    showPanel("setup"); return;
+  }
+  setSaveStatus("saving", "Saving…");
+  try {
+    const res = await fetch(`https://api.jsonbin.io/v3/b/${JSONBIN_BIN_ID}`, {
+      method: "PUT",
+      headers: {
+        "Content-Type": "application/json",
+        "X-Master-Key": JSONBIN_API_KEY,
+        "X-Bin-Versioning": "false"
+      },
+      body: JSON.stringify(menuData)
+    });
+    if (!res.ok) throw new Error();
+    setSaveStatus("saved", "Saved ✓");
+  } catch {
+    setSaveStatus("error", "Save failed. Check your API key.");
+  }
+}
+
+function setSaveStatus(state, text) {
+  const el = document.getElementById("saveStatus");
+  el.className = "save-status " + state;
+  document.getElementById("saveStatusText").textContent = text;
+  if (state === "saved") setTimeout(() => { el.className = "save-status"; document.getElementById("saveStatusText").textContent = "All saved"; }, 3000);
+}
+
+// ── NAVIGATION ───────────────────────────────────────────────────
+function showPanel(id) {
+  document.querySelectorAll(".panel").forEach(p => p.classList.remove("on"));
+  document.querySelectorAll(".nav-item").forEach(n => n.classList.remove("on"));
+  document.getElementById("panel-" + id).classList.add("on");
+  document.getElementById("nav-" + id)?.classList.add("on");
+}
+
+// ── RENDER ALL ───────────────────────────────────────────────────
+function renderAll() {
+  renderStats();
+  renderItemsByCat();
+  renderCatChips();
+  renderCatSelect();
+  renderRestaurantInfo();
+  updateStarterJson();
+}
+
+// ── STATS ────────────────────────────────────────────────────────
+function renderStats() {
+  const items = menuData.items || [];
+  const cats  = menuData.categories || [];
+  const available = items.filter(i => i.available !== false).length;
+  document.getElementById("statsRow").innerHTML = `
+    <div class="stat-card"><div class="stat-label">Total Items</div><div class="stat-val orange">${items.length}</div></div>
+    <div class="stat-card"><div class="stat-label">Available</div><div class="stat-val yellow">${available}</div></div>
+    <div class="stat-card"><div class="stat-label">Categories</div><div class="stat-val">${cats.length}</div></div>
+    <div class="stat-card"><div class="stat-label">Hidden</div><div class="stat-val">${items.length - available}</div></div>
+  `;
+}
+
+// ── ITEMS BY CATEGORY ────────────────────────────────────────────
+function renderItemsByCat() {
+  const cats  = menuData.categories || [];
+  const items = menuData.items || [];
+  const html  = cats.map(c => {
+    const catItems = items.filter(i => i.cat === c.id);
+    if (!catItems.length) return "";
+    return `
+      <div class="section-card" style="margin-bottom:20px">
+        <div class="section-card-hd">
+          <div class="section-card-title">${c.ico||""} ${c.label} <span style="font-size:12px;color:var(--muted);font-weight:400">(${catItems.length})</span></div>
+        </div>
+        ${catItems.map(it => `
+          <div class="admin-item" id="ai-${it.id}">
+            ${it.img
+              ? `<img class="ai-thumb" src="${it.img}" loading="lazy" onerror="this.style.display='none'">`
+              : `<div class="ai-thumb">${c.ico||"🍴"}</div>`}
+            <div class="ai-info">
+              <div class="ai-name">${it.name}${it.badge?` <span style="font-size:10px;background:var(--orange-lo);color:var(--orange);padding:1px 6px;border-radius:20px;font-weight:600">${it.badge.toUpperCase()}</span>`:""}</div>
+              <div class="ai-meta">${it.desc||"No description"}</div>
+            </div>
+            <div class="ai-price">$${parseFloat(it.price).toFixed(2)}</div>
+            <div class="ai-actions">
+              <button class="availability-toggle ${it.available!==false?"on":"off"}"
+                onclick="toggleAvailability('${it.id}')"
+                title="${it.available!==false?"Available — click to hide":"Hidden — click to show"}">
+              </button>
+              <button class="icon-btn" onclick="openItemModal('${it.id}')" title="Edit">✏️</button>
+              <button class="icon-btn del" onclick="deleteItem('${it.id}')" title="Delete">🗑️</button>
+            </div>
+          </div>`).join("")}
+      </div>`;
+  }).join("");
+  document.getElementById("itemsByCat").innerHTML = html ||
+    `<div style="text-align:center;padding:60px 20px;color:var(--muted)">
+      <div style="font-size:36px;margin-bottom:12px">🍽️</div>
+      <div style="font-size:16px;font-weight:600;color:var(--white);margin-bottom:6px">No items yet</div>
+      <div style="font-size:13px">Click "+ Add Item" to add your first menu item</div>
+    </div>`;
+}
+
+// ── CAT CHIPS ────────────────────────────────────────────────────
+function renderCatChips() {
+  const cats  = menuData.categories || [];
+  const items = menuData.items || [];
+  document.getElementById("catChips").innerHTML = cats.map(c => {
+    const count = items.filter(i => i.cat === c.id).length;
+    return `
+      <div class="cat-chip">
+        <span class="cat-chip-ico">${c.ico||"🍴"}</span>
+        <span class="cat-chip-label">${c.label}</span>
+        <span class="cat-chip-count">${count} item${count!==1?"s":""}</span>
+        <button class="cat-chip-del" onclick="deleteCat('${c.id}')" title="Delete">✕</button>
+      </div>`;
+  }).join("");
+}
+
+function renderCatSelect() {
+  const cats = menuData.categories || [];
+  document.getElementById("item-cat").innerHTML = cats
+    .map(c => `<option value="${c.id}">${c.ico||""} ${c.label}</option>`)
+    .join("");
+}
+
+// ── RESTAURANT INFO ──────────────────────────────────────────────
+function renderRestaurantInfo() {
+  const r = menuData.restaurant || {};
+  document.getElementById("ri-name").value    = r.name    || "";
+  document.getElementById("ri-tagline").value = r.tagline || "";
+  document.getElementById("ri-subtitle").value= r.subtitle|| "";
+  document.getElementById("ri-logo").value    = r.logoUrl || "";
+}
+
+function saveRestaurantInfo() {
+  menuData.restaurant = {
+    name:     document.getElementById("ri-name").value,
+    tagline:  document.getElementById("ri-tagline").value,
+    subtitle: document.getElementById("ri-subtitle").value,
+    logoUrl:  document.getElementById("ri-logo").value,
+  };
+  saveToJsonBin();
+}
+
+// ── ITEM MODAL ───────────────────────────────────────────────────
+function openItemModal(id) {
+  editingItemId = id || null;
+  currentImgBase64 = "";
+  document.getElementById("itemModalTitle").textContent = id ? "Edit Item" : "Add Item";
+  renderCatSelect();
+
+  // reset
+  ["item-id","item-name","item-desc","item-price","item-img-url","item-badge"].forEach(f => {
+    document.getElementById(f).value = "";
+  });
+  resetImgPreview();
+  resetBadgeOpts();
+
+  if (id) {
+    const it = menuData.items.find(i => i.id == id);
+    if (!it) return;
+    document.getElementById("item-id").value    = it.id;
+    document.getElementById("item-name").value  = it.name;
+    document.getElementById("item-desc").value  = it.desc || "";
+    document.getElementById("item-price").value = it.price;
+    document.getElementById("item-cat").value   = it.cat;
+    document.getElementById("item-badge").value = it.badge || "";
+    document.getElementById("item-img-url").value = it.img || "";
+    if (it.img) showImgPreview(it.img);
+    selectBadge(it.badge || "");
+  }
+
+  document.getElementById("itemModal").classList.add("on");
+}
+
+function closeItemModal() {
+  document.getElementById("itemModal").classList.remove("on");
+  editingItemId = null;
+}
+
+function saveItem() {
+  const name  = document.getElementById("item-name").value.trim();
+  const cat   = document.getElementById("item-cat").value;
+  const price = parseFloat(document.getElementById("item-price").value);
+  if (!name)    { alert("Please enter an item name."); return; }
+  if (!cat)     { alert("Please select a category."); return; }
+  if (isNaN(price)) { alert("Please enter a valid price."); return; }
+
+  const img   = currentImgBase64 || document.getElementById("item-img-url").value.trim();
+  const desc  = document.getElementById("item-desc").value.trim();
+  const badge = document.getElementById("item-badge").value;
+
+  if (editingItemId) {
+    const idx = menuData.items.findIndex(i => i.id == editingItemId);
+    if (idx > -1) menuData.items[idx] = { ...menuData.items[idx], name, cat, price, desc, img, badge };
+  } else {
+    const id = Date.now().toString();
+    menuData.items.push({ id, name, cat, price, desc, img, badge, available:true });
+  }
+
+  renderAll();
+  closeItemModal();
+  setSaveStatus("saving", "Unsaved changes");
+}
+
+function deleteItem(id) {
+  if (!confirm("Delete this item? This cannot be undone.")) return;
+  menuData.items = menuData.items.filter(i => i.id != id);
+  renderAll();
+  setSaveStatus("saving", "Unsaved changes");
+}
+
+function toggleAvailability(id) {
+  const it = menuData.items.find(i => i.id == id);
+  if (!it) return;
+  it.available = !(it.available !== false);
+  renderAll();
+  setSaveStatus("saving", "Unsaved changes");
+}
+
+// ── CATEGORY MODAL ────────────────────────────────────────────────
+function openCatModal()  { document.getElementById("catModal").classList.add("on"); document.getElementById("cat-label").value=""; document.getElementById("cat-ico").value=""; }
+function closeCatModal() { document.getElementById("catModal").classList.remove("on"); }
+
+function saveCat() {
+  const label = document.getElementById("cat-label").value.trim();
+  const ico   = document.getElementById("cat-ico").value.trim();
+  if (!label) { alert("Please enter a category name."); return; }
+  const id = label.toLowerCase().replace(/[^a-z0-9]/g,"").slice(0,20) + Date.now().toString().slice(-4);
+  menuData.categories.push({ id, label, ico: ico || "🍴" });
+  renderAll();
+  closeCatModal();
+  setSaveStatus("saving", "Unsaved changes");
+}
+
+function deleteCat(id) {
+  const count = (menuData.items||[]).filter(i=>i.cat===id).length;
+  if (count > 0 && !confirm(`This category has ${count} item(s). Delete anyway? Items will remain but won't appear on the menu.`)) return;
+  menuData.categories = menuData.categories.filter(c => c.id !== id);
+  renderAll();
+  setSaveStatus("saving", "Unsaved changes");
+}
+
+// ── IMAGE HANDLING ────────────────────────────────────────────────
+function handleImageUpload(event) {
+  const file = event.target.files[0];
+  if (!file) return;
+  if (file.size > 2 * 1024 * 1024) { alert("Image must be under 2MB. Consider using a URL instead."); return; }
+  const reader = new FileReader();
+  reader.onload = e => {
+    currentImgBase64 = e.target.result;
+    showImgPreview(currentImgBase64);
+    document.getElementById("item-img-url").value = "";
+  };
+  reader.readAsDataURL(file);
+}
+
+function previewFromUrl(url) {
+  if (url) { showImgPreview(url); currentImgBase64 = ""; }
+  else resetImgPreview();
+}
+
+function showImgPreview(src) {
+  const preview = document.getElementById("imgPreview");
+  preview.src = src;
+  preview.classList.add("on");
+  document.getElementById("imgUploadIco").style.display = "none";
+  document.getElementById("imgUploadText").style.display = "none";
+}
+
+function resetImgPreview() {
+  const preview = document.getElementById("imgPreview");
+  preview.src = "";
+  preview.classList.remove("on");
+  document.getElementById("imgUploadIco").style.display = "block";
+  document.getElementById("imgUploadText").style.display = "block";
+  currentImgBase64 = "";
+}
+
+// ── BADGE OPTS ────────────────────────────────────────────────────
+function resetBadgeOpts() {
+  document.querySelectorAll(".badge-opt").forEach(b => b.className = "badge-opt");
+}
+function selectBadge(val) {
+  resetBadgeOpts();
+  const btn = document.querySelector(`.badge-opt[data-badge="${val}"]`);
+  if (btn && val) btn.classList.add(`sel-${val}`);
+  document.getElementById("item-badge").value = val;
+}
+document.querySelectorAll(".badge-opt").forEach(b =>
+  b.addEventListener("click", () => selectBadge(b.dataset.badge))
+);
+
+// ── STARTER JSON ──────────────────────────────────────────────────
+function updateStarterJson() {
+  document.getElementById("starterJson").textContent = JSON.stringify(menuData, null, 2);
+}
+
+function copyStarterJson() {
+  navigator.clipboard.writeText(JSON.stringify(menuData, null, 2))
+    .then(() => alert("✅ JSON copied! Paste it into a new JSONBin bin."))
+    .catch(() => alert("Copy failed — please select and copy the text manually."));
+}
+
+// ── CLOSE MODALS ON BACKDROP ──────────────────────────────────────
+document.getElementById("itemModal").addEventListener("click", e => {
+  if (e.target === document.getElementById("itemModal")) closeItemModal();
+});
+document.getElementById("catModal").addEventListener("click", e => {
+  if (e.target === document.getElementById("catModal")) closeCatModal();
+});
+</script>
+</body>
+</html>

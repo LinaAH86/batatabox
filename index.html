@@ -1,0 +1,419 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="theme-color" content="#141414">
+<title>بطاطا Box — Menu</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg:#141414; --surface:#1c1c1c; --card:#222;
+  --line:rgba(255,255,255,0.07); --line-md:rgba(255,255,255,0.13);
+  --orange:#F47C20; --orange-lo:rgba(244,124,32,0.12);
+  --yellow:#F5C842; --white:#fff; --muted:rgba(255,255,255,0.42);
+  --subtle:rgba(255,255,255,0.06);
+  --f:'Plus Jakarta Sans',sans-serif;
+  --r:12px; --pill:100px; --ease:cubic-bezier(.4,0,.2,1);
+  --st:env(safe-area-inset-top,0px); --sb:env(safe-area-inset-bottom,0px);
+}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+html{-webkit-text-size-adjust:100%}
+body{font-family:var(--f);background:var(--bg);color:var(--white);min-height:100dvh;-webkit-font-smoothing:antialiased}
+button{cursor:pointer;font-family:inherit;border:none;background:none}
+input{font-family:inherit}
+img{display:block}
+
+/* HEADER */
+.hd{position:sticky;top:0;z-index:100;background:var(--bg);border-bottom:1px solid var(--line);padding:calc(var(--st)+10px) 18px 10px}
+.hd-inner{display:flex;align-items:center;justify-content:space-between;gap:12px}
+.brand{display:flex;align-items:center;gap:11px}
+.brand-logo{width:46px;height:46px;border-radius:10px;object-fit:contain;background:#1e1700;padding:3px;filter:drop-shadow(0 2px 8px rgba(244,124,32,.3))}
+.brand-name{font-size:17px;font-weight:700;letter-spacing:-.2px}
+.brand-name span{color:var(--orange)}
+.brand-sub{font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:2px;margin-top:2px}
+.hd-cart{position:relative;width:40px;height:40px;border-radius:50%;background:var(--subtle);border:1px solid var(--line-md);display:flex;align-items:center;justify-content:center;font-size:17px;transition:background .18s}
+.hd-cart:hover{background:var(--orange)}
+.cart-dot{position:absolute;top:-3px;right:-3px;min-width:17px;height:17px;border-radius:var(--pill);background:var(--orange);color:#fff;font-size:9px;font-weight:700;padding:0 4px;display:none;align-items:center;justify-content:center}
+.cart-dot.on{display:flex}
+
+/* HERO */
+.hero{padding:20px 18px 18px;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid var(--line);gap:12px}
+.eyebrow{font-size:10px;font-weight:600;letter-spacing:2.5px;text-transform:uppercase;color:var(--orange);margin-bottom:5px}
+.hero h1{font-size:clamp(26px,6vw,38px);font-weight:700;line-height:1.1;letter-spacing:-.5px}
+.hero h1 em{color:var(--yellow);font-style:normal}
+.hero p{margin-top:6px;font-size:12px;color:var(--muted);line-height:1.5}
+.hero-img{width:82px;height:82px;object-fit:contain;flex-shrink:0;filter:drop-shadow(0 4px 14px rgba(244,124,32,.35))}
+
+/* SEARCH */
+.search{padding:14px 18px}
+.s-wrap{display:flex;align-items:center;background:var(--surface);border:1px solid var(--line);border-radius:var(--pill);transition:border-color .18s;position:relative}
+.s-wrap:focus-within{border-color:var(--orange)}
+.s-ico{position:absolute;left:14px;font-size:14px;color:var(--muted);pointer-events:none}
+#sInput{width:100%;padding:11px 36px 11px 40px;background:none;border:none;outline:none;color:var(--white);font-size:14px}
+#sInput::placeholder{color:var(--muted)}
+#sClear{position:absolute;right:12px;width:22px;height:22px;border-radius:50%;background:rgba(255,255,255,.1);color:var(--muted);font-size:12px;display:none;align-items:center;justify-content:center}
+#sClear.on{display:flex}
+#sClear:hover{background:var(--orange);color:#fff}
+
+/* TABS */
+.tabs{overflow-x:auto;-webkit-overflow-scrolling:touch;scrollbar-width:none;border-bottom:1px solid var(--line)}
+.tabs::-webkit-scrollbar{display:none}
+.tabs-inner{display:flex;padding:0 18px;width:max-content}
+.tab{padding:11px 16px;font-size:12px;font-weight:600;color:var(--muted);white-space:nowrap;border-bottom:2px solid transparent;transition:color .18s,border-color .18s;letter-spacing:.2px}
+.tab:hover{color:var(--white)}
+.tab.on{color:var(--orange);border-bottom-color:var(--orange)}
+
+/* VAT */
+.vat-note{text-align:center;font-size:11px;color:var(--muted);padding:16px 18px 0;letter-spacing:.3px}
+
+/* SECTION */
+.section{padding:0 18px}
+.cat-block{margin-bottom:4px}
+.cat-head{display:flex;align-items:center;gap:10px;padding:22px 0 10px;position:sticky;top:67px;background:var(--bg);z-index:10}
+.cat-head-line{flex:1;height:1px;background:var(--line)}
+.cat-head-label{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:2px;color:var(--orange);white-space:nowrap}
+.cat-head-ico{font-size:16px}
+
+/* ITEM ROW */
+.item-row{display:flex;align-items:center;gap:12px;padding:13px 0;border-bottom:1px solid var(--line)}
+.item-row:last-child{border-bottom:none}
+.item-thumb{width:62px;height:62px;border-radius:10px;object-fit:cover;flex-shrink:0;background:var(--surface)}
+.item-body{flex:1;min-width:0}
+.item-top{display:flex;align-items:flex-start;gap:6px;flex-wrap:wrap}
+.item-name{font-size:14px;font-weight:600;line-height:1.25;letter-spacing:-.1px}
+.item-badge{margin-top:1px;padding:2px 7px;border-radius:var(--pill);font-size:9px;font-weight:700;letter-spacing:.5px;text-transform:uppercase;flex-shrink:0}
+.b-new{background:var(--orange);color:#fff}
+.b-hot{background:#e53e3e;color:#fff}
+.b-veg{background:#22c55e;color:#fff}
+.b-spicy{background:#c2410c;color:#fff}
+.item-desc{font-size:12px;color:var(--muted);margin-top:4px;line-height:1.45}
+.item-right{display:flex;flex-direction:column;align-items:flex-end;gap:8px;flex-shrink:0}
+.item-price{font-size:15px;font-weight:700;color:var(--yellow);letter-spacing:-.2px;white-space:nowrap}
+.item-price sub{font-size:10px;opacity:.7;vertical-align:baseline;font-weight:400}
+.add-btn{width:30px;height:30px;border-radius:50%;background:var(--orange);color:#fff;font-size:20px;line-height:1;display:flex;align-items:center;justify-content:center;box-shadow:0 3px 10px rgba(244,124,32,.35);transition:transform .15s var(--ease),background .15s;flex-shrink:0}
+.add-btn:hover{background:#ff9340;transform:scale(1.1)}
+.add-btn:active{transform:scale(.9)}
+
+/* LOADING */
+.loading{display:flex;flex-direction:column;align-items:center;justify-content:center;padding:80px 20px;gap:14px;color:var(--muted)}
+.spinner{width:36px;height:36px;border:3px solid var(--line-md);border-top-color:var(--orange);border-radius:50%;animation:spin .7s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+
+/* EMPTY */
+.empty{padding:60px 18px;text-align:center;color:var(--muted);display:none}
+.empty.on{display:block}
+.empty-ico{font-size:40px;margin-bottom:12px}
+.empty-h{font-size:20px;font-weight:700;color:var(--white);margin-bottom:6px}
+
+/* FOOTER */
+.footer{margin-top:40px;padding:20px 18px calc(var(--sb)+20px);border-top:1px solid var(--line);text-align:center;display:flex;flex-direction:column;gap:4px}
+.footer-brand{font-size:14px;font-weight:700;color:var(--orange)}
+.footer-pow{font-size:10px;color:rgba(255,255,255,.13);letter-spacing:1.5px;text-transform:uppercase}
+
+/* CART DRAWER */
+.scrim{position:fixed;inset:0;z-index:200;background:rgba(0,0,0,.6);opacity:0;pointer-events:none;transition:opacity .22s}
+.scrim.on{opacity:1;pointer-events:all}
+.drawer{position:fixed;bottom:0;left:0;right:0;z-index:201;background:var(--surface);border:1px solid var(--line-md);border-radius:18px 18px 0 0;padding:0 18px calc(var(--sb)+20px);max-height:80dvh;overflow-y:auto;transform:translateY(100%);transition:transform .3s cubic-bezier(.4,0,.2,1)}
+.drawer.on{transform:none}
+.dpull{width:32px;height:4px;border-radius:2px;background:rgba(255,255,255,.12);margin:12px auto 16px}
+.dh{font-size:20px;font-weight:700;margin-bottom:14px}
+.ci-list{display:flex;flex-direction:column;gap:10px}
+.ci{display:flex;gap:12px;align-items:center;background:rgba(255,255,255,.04);border:1px solid var(--line);border-radius:var(--r);padding:10px}
+.ci-img{width:50px;height:50px;border-radius:8px;object-fit:cover;flex-shrink:0;background:var(--bg)}
+.ci-info{flex:1;min-width:0}
+.ci-name{font-size:13px;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.ci-price{font-size:12px;color:var(--yellow);margin-top:2px}
+.qty{display:flex;align-items:center;gap:8px}
+.qb{width:26px;height:26px;border-radius:50%;background:var(--subtle);border:1px solid var(--line-md);color:var(--white);font-size:15px;display:flex;align-items:center;justify-content:center;transition:background .15s}
+.qb:hover{background:var(--orange);border-color:var(--orange)}
+.qn{font-size:14px;font-weight:700;min-width:18px;text-align:center}
+.dsummary{margin-top:18px;padding-top:14px;border-top:1px solid var(--line)}
+.drow{display:flex;justify-content:space-between;font-size:13px;color:var(--muted);margin-bottom:6px}
+.drow.tot{font-size:16px;font-weight:700;color:var(--white);margin-top:6px}
+.order-btn{width:100%;margin-top:16px;padding:14px;background:var(--orange);border-radius:var(--pill);color:#fff;font-size:16px;font-weight:700;letter-spacing:.5px;box-shadow:0 6px 20px rgba(244,124,32,.4);transition:transform .15s,box-shadow .15s}
+.order-btn:hover{transform:translateY(-2px);box-shadow:0 10px 26px rgba(244,124,32,.5)}
+.cart-empty-msg{text-align:center;padding:32px 0;color:var(--muted);font-size:14px}
+
+/* TOAST */
+.toast{position:fixed;bottom:calc(var(--sb) + 72px);left:50%;transform:translateX(-50%) translateY(8px);background:var(--surface);border:1px solid var(--line-md);border-radius:var(--pill);padding:9px 18px;font-size:13px;font-weight:500;white-space:nowrap;z-index:300;opacity:0;pointer-events:none;transition:opacity .18s,transform .18s}
+.toast.on{opacity:1;transform:translateX(-50%) translateY(0)}
+
+::-webkit-scrollbar{width:3px}
+::-webkit-scrollbar-track{background:transparent}
+::-webkit-scrollbar-thumb{background:rgba(255,255,255,.08);border-radius:2px}
+</style>
+</head>
+<body>
+
+<header class="hd">
+  <div class="hd-inner">
+    <div class="brand">
+      <img class="brand-logo" id="heroLogo" src="logo-1.png" alt="بطاطا Box">
+      <div>
+        <div class="brand-name" id="brandName"><span>بطاطا</span> Box</div>
+        <div class="brand-sub" id="brandTag">Street Food Menu</div>
+      </div>
+    </div>
+    <button class="hd-cart" id="cartBtn" aria-label="Cart">
+      🛒<span class="cart-dot" id="cartDot">0</span>
+    </button>
+  </div>
+</header>
+
+<div class="hero">
+  <div>
+    <div class="eyebrow" id="heroEyebrow">Fresh &amp; Hot Every Day</div>
+    <h1>Our <em>Menu</em></h1>
+    <p id="heroSub">Crispy, bold &amp; loaded.<br>Order what you crave.</p>
+  </div>
+  <img class="hero-img" src="logo-1.png" id="heroImgRight" alt="">
+</div>
+
+<div class="search">
+  <div class="s-wrap">
+    <span class="s-ico">🔍</span>
+    <input id="sInput" type="search" placeholder="Search the menu…" autocomplete="off" inputmode="search">
+    <button id="sClear" aria-label="Clear">✕</button>
+  </div>
+</div>
+
+<nav class="tabs" aria-label="Categories">
+  <div class="tabs-inner" id="tabsInner"></div>
+</nav>
+
+<p class="vat-note">All prices include VAT</p>
+
+<div id="loadingEl" class="loading">
+  <div class="spinner"></div>
+  <span>Loading menu…</span>
+</div>
+
+<div class="section" id="menuSection"></div>
+<div class="empty" id="emptyState">
+  <div class="empty-ico">🔍</div>
+  <div class="empty-h">Nothing found</div>
+  <p>Try a different keyword or category</p>
+</div>
+
+<footer class="footer">
+  <div class="footer-brand">بطاطا Box</div>
+  <div class="footer-pow">Powered by Ocho POS</div>
+</footer>
+
+<div class="scrim" id="scrim"></div>
+<div class="drawer" id="drawer" role="dialog" aria-label="Your order">
+  <div class="dpull"></div>
+  <h2 class="dh">Your Order</h2>
+  <div class="ci-list" id="ciList"></div>
+  <div class="dsummary" id="dSum" style="display:none">
+    <div class="drow"><span>Subtotal</span><span id="dSub"></span></div>
+    <div class="drow"><span>Tax (11%)</span><span id="dTax"></span></div>
+    <div class="drow tot"><span>Total</span><span id="dTot"></span></div>
+    <button class="order-btn" id="orderBtn">Place Order →</button>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+/* ================================================================
+   OCHO POS — Customer Menu
+   Data source: JSONBin.io  (configure BIN_ID below)
+   ================================================================ */
+
+// ── CONFIG — fill these in after creating your JSONBin ──────────
+const JSONBIN_BIN_ID  = "6a1d317721f9ee59d2a3e116";          // from jsonbin.io
+const JSONBIN_API_KEY = "$2a$10$qPHEx7GhDDODc3fHmJjH7eaW78IwMC2Re8toTg7orSorDDMWjHjf.";  // from jsonbin.io
+// ────────────────────────────────────────────────────────────────
+
+const TENANT = { currency:"$", tax:0.11 };
+const BADGE_LABEL = { new:"NEW", hot:"🔥 Hot", veg:"🌿 Veg", spicy:"🌶 Spicy" };
+
+let MENU_DATA = null; // loaded from JSONBin
+let activeCat = "all", query = "";
+const cart = {};
+
+const $ = id => document.getElementById(id);
+
+// ── FETCH MENU FROM JSONBIN ──────────────────────────────────────
+async function loadMenu() {
+  try {
+    const res = await fetch(`https://api.jsonbin.io/v3/b/${JSONBIN_BIN_ID}/latest`, {
+      headers: { "X-Master-Key": JSONBIN_API_KEY, "X-Bin-Meta": "false" }
+    });
+    if (!res.ok) throw new Error("Failed to load");
+    MENU_DATA = await res.json();
+    $("loadingEl").style.display = "none";
+
+    // apply restaurant info
+    if (MENU_DATA.restaurant) {
+      const r = MENU_DATA.restaurant;
+      if (r.logoUrl) { $("heroLogo").src = r.logoUrl; $("heroImgRight").src = r.logoUrl; }
+      if (r.tagline) $("heroEyebrow").textContent = r.tagline;
+      if (r.subtitle) $("heroSub").innerHTML = r.subtitle;
+    }
+
+    buildTabs();
+    render();
+  } catch(e) {
+    $("loadingEl").innerHTML = `<div style="text-align:center;padding:60px 20px;color:rgba(255,255,255,.4)">
+      <div style="font-size:36px;margin-bottom:12px">⚠️</div>
+      <div style="font-size:15px;font-weight:600;color:#fff;margin-bottom:6px">Menu unavailable</div>
+      <div style="font-size:13px">Check your JSONBin configuration in index.html</div>
+    </div>`;
+  }
+}
+
+// ── TABS ─────────────────────────────────────────────────────────
+function buildTabs() {
+  const cats = getCategories();
+  $("tabsInner").innerHTML = [{ id:"all", label:"All", ico:"🍽️" }, ...cats]
+    .map(c => `<button class="tab${c.id===activeCat?" on":""}" data-c="${c.id}">${c.ico||"🍴"} ${c.label}</button>`)
+    .join("");
+  $("tabsInner").querySelectorAll(".tab").forEach(b =>
+    b.addEventListener("click", () => { activeCat = b.dataset.c; buildTabs(); render(); })
+  );
+}
+
+function getCategories() {
+  if (!MENU_DATA?.categories) return [];
+  return MENU_DATA.categories;
+}
+
+function getItems() {
+  return MENU_DATA?.items || [];
+}
+
+// ── FILTER ───────────────────────────────────────────────────────
+function filtered() {
+  const q = query.toLowerCase().trim();
+  return getItems().filter(it => {
+    const mc = activeCat === "all" || it.cat === activeCat;
+    const mq = !q || it.name.toLowerCase().includes(q) || (it.desc||"").toLowerCase().includes(q);
+    return mc && mq && it.available !== false;
+  });
+}
+
+// ── RENDER ───────────────────────────────────────────────────────
+function render() {
+  const items = filtered();
+  const cats  = getCategories();
+  $("emptyState").classList.toggle("on", items.length === 0);
+  if (!items.length) { $("menuSection").innerHTML = ""; return; }
+
+  const groups = {};
+  cats.forEach(c => groups[c.id] = []);
+  items.forEach(it => { if (groups[it.cat]) groups[it.cat].push(it); });
+
+  $("menuSection").innerHTML = cats
+    .filter(c => (groups[c.id]||[]).length > 0)
+    .map(c => `
+      <div class="cat-block" data-cat="${c.id}">
+        <div class="cat-head">
+          <span class="cat-head-ico">${c.ico||"🍴"}</span>
+          <span class="cat-head-label">${c.label}</span>
+          <div class="cat-head-line"></div>
+        </div>
+        ${groups[c.id].map(it => `
+          <div class="item-row">
+            ${it.img
+              ? `<img class="item-thumb" src="${it.img}" alt="${it.name}" loading="lazy">`
+              : `<div class="item-thumb" style="display:flex;align-items:center;justify-content:center;font-size:26px">${c.ico||"🍴"}</div>`}
+            <div class="item-body">
+              <div class="item-top">
+                <span class="item-name">${it.name}</span>
+                ${it.badge ? `<span class="item-badge b-${it.badge}">${BADGE_LABEL[it.badge]||it.badge}</span>` : ""}
+              </div>
+              ${it.desc ? `<div class="item-desc">${it.desc}</div>` : ""}
+            </div>
+            <div class="item-right">
+              <div class="item-price"><sub>${TENANT.currency}</sub>${parseFloat(it.price).toFixed(2)}</div>
+              <button class="add-btn" data-aid="${it.id}" aria-label="Add ${it.name}">+</button>
+            </div>
+          </div>`).join("")}
+      </div>`).join("");
+
+  $("menuSection").querySelectorAll(".add-btn").forEach(b =>
+    b.addEventListener("click", () => addToCart(b.dataset.aid))
+  );
+}
+
+// ── CART ─────────────────────────────────────────────────────────
+function addToCart(id) {
+  const it = getItems().find(i => i.id == id); if (!it) return;
+  cart[id] ? cart[id].qty++ : (cart[id] = { item:it, qty:1 });
+  updateDot(); showToast(`Added — ${it.name}`);
+}
+function updateDot() {
+  const n = Object.values(cart).reduce((s,e) => s+e.qty, 0);
+  $("cartDot").textContent = n;
+  $("cartDot").classList.toggle("on", n > 0);
+}
+function renderCart() {
+  const entries = Object.values(cart);
+  if (!entries.length) {
+    $("ciList").innerHTML = `<p class="cart-empty-msg">Your order is empty 🙈</p>`;
+    $("dSum").style.display = "none"; return;
+  }
+  $("ciList").innerHTML = entries.map(({item:it,qty}) => `
+    <div class="ci">
+      ${it.img ? `<img class="ci-img" src="${it.img}" loading="lazy">` : `<div class="ci-img" style="display:flex;align-items:center;justify-content:center;font-size:22px">🍴</div>`}
+      <div class="ci-info">
+        <div class="ci-name">${it.name}</div>
+        <div class="ci-price">${TENANT.currency}${(it.price*qty).toFixed(2)}</div>
+      </div>
+      <div class="qty">
+        <button class="qb" data-q="dec" data-qid="${it.id}">−</button>
+        <span class="qn">${qty}</span>
+        <button class="qb" data-q="inc" data-qid="${it.id}">+</button>
+      </div>
+    </div>`).join("");
+
+  const sub = entries.reduce((s,{item:it,qty}) => s+it.price*qty, 0);
+  const tax = sub * TENANT.tax;
+  $("dSub").textContent = `${TENANT.currency}${sub.toFixed(2)}`;
+  $("dTax").textContent = `${TENANT.currency}${tax.toFixed(2)}`;
+  $("dTot").textContent = `${TENANT.currency}${(sub+tax).toFixed(2)}`;
+  $("dSum").style.display = "block";
+
+  $("ciList").querySelectorAll(".qb").forEach(b => b.addEventListener("click", () => {
+    const id = b.dataset.qid;
+    b.dataset.q === "inc" ? cart[id].qty++ : (--cart[id].qty <= 0 && delete cart[id]);
+    updateDot(); renderCart();
+  }));
+}
+function openCart()  { renderCart(); $("drawer").classList.add("on"); $("scrim").classList.add("on"); document.body.style.overflow="hidden"; }
+function closeCart() { $("drawer").classList.remove("on"); $("scrim").classList.remove("on"); document.body.style.overflow=""; }
+
+$("cartBtn").addEventListener("click", openCart);
+$("scrim").addEventListener("click", closeCart);
+$("orderBtn").addEventListener("click", () => {
+  closeCart(); Object.keys(cart).forEach(k=>delete cart[k]); updateDot(); showToast("✅ Order placed! Thank you.");
+});
+
+// ── SEARCH ───────────────────────────────────────────────────────
+$("sInput").addEventListener("input", () => {
+  query = $("sInput").value;
+  $("sClear").classList.toggle("on", query.length > 0);
+  render();
+});
+$("sClear").addEventListener("click", () => {
+  $("sInput").value = query = "";
+  $("sClear").classList.remove("on");
+  $("sInput").focus(); render();
+});
+
+// ── TOAST ─────────────────────────────────────────────────────────
+let tt;
+function showToast(msg) {
+  $("toast").textContent = msg; $("toast").classList.add("on");
+  clearTimeout(tt); tt = setTimeout(() => $("toast").classList.remove("on"), 2200);
+}
+
+// ── BOOT ──────────────────────────────────────────────────────────
+loadMenu();
+</script>
+</body>
+</html>
