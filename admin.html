@@ -418,7 +418,7 @@ code{
         <button class="nav-item" onclick="showPanel('security')" id="nav-security">
           <span class="ico">🔐</span> Security
         </button>
-        <button class="nav-item" onclick="showPanel('setup')" id="nav-setup">
+        <button class="nav-item" onclick="showPanel('setup')" id="nav-setup" style="display:none">
           <span class="ico">⚙️</span> Setup Guide
         </button>
       </div>
@@ -525,6 +525,11 @@ code{
                 <label class="flabel">WhatsApp Number</label>
                 <input class="finput" id="ri-whatsapp" placeholder="e.g. +9611234567" type="tel">
                 <div style="font-size:11px;color:var(--muted);margin-top:6px">Include country code. Orders will be sent to this number.</div>
+              </div>
+              <div class="form-row">
+                <label class="flabel">USD → LBP Rate</label>
+                <input class="finput" id="ri-lbp" placeholder="e.g. 89500" type="number" min="0">
+                <div style="font-size:11px;color:var(--muted);margin-top:5px">Used to show LBP equivalent at checkout. Update when rate changes.</div>
               </div>
               <div class="form-row">
                 <label class="flabel">Currency Symbol</label>
@@ -1116,6 +1121,7 @@ function renderRestaurantInfo() {
   document.getElementById("ri-logo").value     = r.logoUrl  || "";
   document.getElementById("ri-whatsapp").value = r.whatsapp || "";
   document.getElementById("ri-currency").value = r.currency || "$";
+  document.getElementById("ri-lbp").value      = r.lbpRate  || "89500";
   document.getElementById("ri-vat-pct").value  = r.vatPct   || "11";
 
   const vatOn = r.vatEnabled === true;
@@ -1171,6 +1177,7 @@ function saveRestaurantInfo() {
     logoUrl:    document.getElementById("ri-logo").value,
     whatsapp:   document.getElementById("ri-whatsapp").value.trim(),
     currency:   document.getElementById("ri-currency").value || "$",
+    lbpRate:    parseFloat(document.getElementById("ri-lbp").value) || 89500,
     vatEnabled: vatOn,
     vatPct:     parseFloat(document.getElementById("ri-vat-pct").value) || 11,
   };
