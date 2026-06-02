@@ -480,8 +480,9 @@ code{
                 <input class="finput" id="ri-tagline" placeholder="e.g. Fresh & Hot Every Day">
               </div>
               <div class="form-row">
-                <label class="flabel">Subtitle</label>
-                <input class="finput" id="ri-subtitle" placeholder="e.g. Crispy, bold & loaded.">
+                <label class="flabel">Menu Subtitle (shown under "OUR MENU")</label>
+                <input class="finput" id="ri-subtitle" placeholder="e.g. Loaded Comfort Food · Made Fresh">
+                <div style="font-size:11px;color:var(--muted);margin-top:5px">This is the tagline customers see in the hero header of the menu.</div>
               </div>
               <div class="form-row">
                 <label class="flabel">Logo URL</label>
@@ -505,6 +506,18 @@ code{
                 <input class="finput" id="ri-currency" placeholder="e.g. $ or LBP or €" maxlength="5">
               </div>
             </div>
+          </div>
+        </div>
+
+        <div class="section-card" style="margin-bottom:16px">
+          <div class="section-card-hd"><div class="section-card-title">🔥 Combo Upsell — "Make it a Combo!"</div></div>
+          <div style="padding:20px">
+            <div style="font-size:13px;color:var(--muted);margin-bottom:14px;line-height:1.5">
+              When a customer adds an item to their order, a popup appears suggesting add-ons from the categories you select below.
+            </div>
+            <div class="flabel" style="margin-bottom:10px">Show add-ons from these categories</div>
+            <div id="upsellCatPicker" style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:6px"></div>
+            <div style="font-size:11px;color:var(--muted);margin-top:8px">Tip: Drinks and Sides work best as upsell categories.</div>
           </div>
         </div>
 
@@ -1045,6 +1058,32 @@ function renderRestaurantInfo() {
   document.getElementById("ri-vat-label").textContent = vatOn
     ? `VAT enabled — ${r.vatPct||11}% added at checkout`
     : "VAT disabled — prices shown as-is";
+
+  // Upsell category picker
+  const selected = menuData.upsellCategories || ["drinks","sides"];
+  const cats = menuData.categories || [];
+  document.getElementById("upsellCatPicker").innerHTML = cats.map(c => `
+    <button class="cat-btn ${selected.includes(c.id)?"on":""}"
+      data-uid="${c.id}" onclick="toggleUpsellCat('${c.id}',this)"
+      style="padding:8px 14px;border-radius:var(--rpill);border:1px solid ${selected.includes(c.id)?"var(--orange)":"var(--line-md)"};background:${selected.includes(c.id)?"var(--orange-lo)":"var(--subtle)"};color:${selected.includes(c.id)?"var(--orange)":"var(--muted)"};font-size:12px;font-weight:600;cursor:pointer">
+      ${c.ico||""} ${c.label}
+    </button>`).join("");
+}
+
+function toggleUpsellCat(id, btn) {
+  if (!menuData.upsellCategories) menuData.upsellCategories = ["drinks","sides"];
+  const idx = menuData.upsellCategories.indexOf(id);
+  if (idx > -1) {
+    menuData.upsellCategories.splice(idx,1);
+    btn.style.borderColor = "var(--line-md)";
+    btn.style.background  = "var(--subtle)";
+    btn.style.color       = "var(--muted)";
+  } else {
+    menuData.upsellCategories.push(id);
+    btn.style.borderColor = "var(--orange)";
+    btn.style.background  = "var(--orange-lo)";
+    btn.style.color       = "var(--orange)";
+  }
 }
 
 function toggleVat() {
@@ -1067,6 +1106,7 @@ function saveRestaurantInfo() {
     vatEnabled: vatOn,
     vatPct:     parseFloat(document.getElementById("ri-vat-pct").value) || 11,
   };
+  // upsellCategories already updated live via toggleUpsellCat
   saveToSupabase();
 }
 
