@@ -158,8 +158,9 @@ img{display:block}
   padding-bottom:calc(var(--sb)+20px);
 }
 .item-modal-overlay.on .item-modal{transform:none}
-.im-img{width:100%;height:200px;object-fit:cover;background:var(--card)}
-.im-img.placeholder{display:flex;align-items:center;justify-content:center;font-size:56px}
+.im-img-wrap{position:relative;background:var(--card);width:100%;height:220px;display:flex;align-items:center;justify-content:center;overflow:hidden}
+.im-img-wrap img{width:100%;height:100%;object-fit:contain;background:var(--card)}
+.im-img-placeholder{font-size:64px}
 .im-body{padding:18px 18px 0}
 .im-top{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;margin-bottom:6px}
 .im-name{font-size:19px;font-weight:700;line-height:1.2;letter-spacing:-.2px}
@@ -386,9 +387,8 @@ img{display:block}
 <!-- ── ITEM DETAIL MODAL ── -->
 <div class="item-modal-overlay" id="itemModalOverlay">
   <div class="item-modal" id="itemModal">
-    <div class="im-img-wrap">
+    <div class="im-img-wrap" id="imImgEl">
       <button class="im-close" id="imClose">✕</button>
-      <div id="imImgEl"></div>
     </div>
     <div class="im-body">
       <div class="im-top">
@@ -621,10 +621,20 @@ function openItemModal(item) {
   modalQty  = 1;
   modalTags = new Set();
 
-  // Image
-  $("imImgEl").innerHTML = item.img
-    ? `<img src="${item.img}" alt="${item.name}" style="width:100%;height:200px;object-fit:cover">`
-    : `<div class="im-img placeholder">${getCategories().find(c=>c.id===item.cat)?.ico||"🍴"}</div>`;
+  // Image — inject before the close button
+  const wrap = $("imImgEl");
+  // Remove previous image/placeholder
+  wrap.querySelectorAll("img,.im-img-placeholder").forEach(el => el.remove());
+  if (item.img) {
+    const img = document.createElement("img");
+    img.src = item.img; img.alt = item.name;
+    wrap.prepend(img);
+  } else {
+    const ph = document.createElement("div");
+    ph.className = "im-img-placeholder";
+    ph.textContent = getCategories().find(c=>c.id===item.cat)?.ico||"🍴";
+    wrap.prepend(ph);
+  }
 
   $("imName").textContent  = item.name;
   $("imPrice").textContent = `${TENANT.currency}${parseFloat(item.price).toFixed(2)}`;
@@ -677,18 +687,30 @@ $("imAddBtn").addEventListener("click", () => {
   if (cart[cartKey]) cart[cartKey].qty += modalQty;
   else cart[cartKey] = { item:modalItem, qty:modalQty, notes, cartKey };
 
+  // Always update dot immediately
+  updateDot();
   closeItemModal();
 
-  // Show combo popup if upsell items exist and main item isn't already an upsell cat
-  const upsellCats = MENU_DATA?.upsellCategories || ["drinks","sides"];
-  if (!upsellCats.includes(modalItem.cat)) {
+  // Show combo popup only if:
+  // 1. The item is NOT already a drink or side
+  // 2. There are upsell suggestions available
+  const upsellCats = MENU_DATA?.upsellCategories?.length
+    ? MENU_DATA.upsellCategories
+    : ["drinks","sides"];
+
+  const isUpsellItem = upsellCats.includes(modalItem.cat);
+
+  if (!isUpsellItem) {
     const suggestions = getItems().filter(it =>
       upsellCats.includes(it.cat) && it.available !== false
-    ).slice(0,4);
-    if (suggestions.length) { openComboPopup(suggestions); return; }
+    ).slice(0, 4);
+    if (suggestions.length) {
+      showToast(`Added — ${modalItem.name}${notes?" (customised)":""}`);
+      setTimeout(() => openComboPopup(suggestions), 350); // wait for item modal to close
+      return;
+    }
   }
 
-  updateDot();
   showToast(`Added — ${modalItem.name}${notes?" (customised)":""}`);
 });
 
@@ -727,16 +749,15 @@ function openComboPopup(suggestions) {
   document.body.style.overflow = "hidden";
 }
 
-function closeComboPopup() {
+function closeComboPopup(msg) {
   $("comboOverlay").classList.remove("on");
   document.body.style.overflow = "";
-  updateDot();
-  showToast("Added to your order 🔥");
+  if (msg) showToast(msg);
 }
 
-$("comboSkip").addEventListener("click", closeComboPopup);
+$("comboSkip").addEventListener("click", () => closeComboPopup(""));
 $("comboOverlay").addEventListener("click", e => {
-  if (e.target === $("comboOverlay")) closeComboPopup();
+  if (e.target === $("comboOverlay")) closeComboPopup("");
 });
 
 $("comboConfirm").addEventListener("click", () => {
@@ -747,7 +768,8 @@ $("comboConfirm").addEventListener("click", () => {
     if (cart[key]) cart[key].qty++;
     else cart[key] = { item:it, qty:1, notes:"", cartKey:key };
   });
-  closeComboPopup();
+  updateDot();
+  closeComboPopup(comboSelected.size > 0 ? "🔥 Combo added!" : "");
 });
 
 // ── CART ─────────────────────────────────────────────────────────
