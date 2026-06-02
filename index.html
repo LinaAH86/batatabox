@@ -266,7 +266,29 @@ img{display:block}
 .order-btn:active{opacity:.8}
 .cart-empty-msg{text-align:center;padding:32px 0;color:var(--muted);font-size:14px}
 
-/* ── COMBO POPUP ── */
+/* ── COMBO OPTIONS IN ITEM MODAL ── */
+.combo-opt{
+  display:flex;align-items:center;gap:12px;
+  padding:12px 14px;border-radius:var(--r);
+  border:1px solid var(--line-md);background:var(--card);
+  cursor:pointer;transition:border-color .15s,background .15s;
+}
+.combo-opt.sel{border-color:var(--orange);background:rgba(244,124,32,.08)}
+.combo-opt-ico{font-size:22px;flex-shrink:0}
+.combo-opt-info{flex:1;min-width:0}
+.combo-opt-name{font-size:13px;font-weight:600}
+.combo-opt-desc{font-size:11px;color:var(--muted);margin-top:2px}
+.combo-opt-price{font-size:14px;font-weight:700;color:var(--orange);white-space:nowrap;flex-shrink:0}
+.combo-opt-radio{
+  width:20px;height:20px;border-radius:50%;
+  border:2px solid var(--line-md);
+  display:flex;align-items:center;justify-content:center;
+  flex-shrink:0;transition:all .15s;
+}
+.combo-opt.sel .combo-opt-radio{border-color:var(--orange);background:var(--orange)}
+.combo-opt.sel .combo-opt-radio::after{content:'';width:8px;height:8px;border-radius:50%;background:#fff}
+
+/* ── COMBO POPUP (keep for overlay) ── */
 .combo-overlay{
   position:fixed;inset:0;z-index:400;
   background:rgba(0,0,0,.7);
@@ -397,6 +419,12 @@ img{display:block}
       </div>
       <div class="im-desc" id="imDesc"></div>
 
+      <!-- COMBO OPTIONS -->
+      <div id="imCombosSection" style="display:none">
+        <div class="im-section-label" style="margin-top:4px">🔥 Make it a Combo</div>
+        <div id="imCombos" style="display:flex;flex-direction:column;gap:8px;margin-bottom:16px"></div>
+      </div>
+
       <!-- QUICK TAGS -->
       <div class="im-section-label">Customise</div>
       <div class="im-tags" id="imTags"></div>
@@ -462,22 +490,6 @@ img{display:block}
   </div>
 </div>
 
-<!-- ── COMBO POPUP ── -->
-<div class="combo-overlay" id="comboOverlay">
-  <div class="combo-sheet">
-    <div class="combo-pull"></div>
-    <div class="combo-head">
-      <div class="combo-title">🔥 Make it a Combo!</div>
-      <div class="combo-sub">Add something extra to your order</div>
-    </div>
-    <div class="combo-items" id="comboItems"></div>
-    <div class="combo-actions">
-      <button class="combo-skip" id="comboSkip">Skip</button>
-      <button class="combo-confirm" id="comboConfirm">Add to Order</button>
-    </div>
-  </div>
-</div>
-
 <!-- ── TOAST ── -->
 <div class="toast" id="toast"></div>
 
@@ -508,6 +520,15 @@ const cart = {}; // { cartKey: { item, qty, notes, cartKey } }
 let modalItem  = null;
 let modalQty   = 1;
 let modalTags  = new Set();
+let modalCombo = null; // selected combo id
+
+function updateImAddBtn() {
+  const combo = (MENU_DATA?.combos||[]).find(c => c.id === modalCombo);
+  const basePrice = parseFloat(modalItem?.price || 0);
+  const comboExtra = combo ? parseFloat(combo.price) : 0;
+  const total = (basePrice + comboExtra) * modalQty;
+  $("imAddBtn").textContent = `Add to Order — ${TENANT.currency}${total.toFixed(2)}`;
+}
 
 const $ = id => document.getElementById(id);
 
@@ -636,11 +657,49 @@ function openItemModal(item) {
     wrap.prepend(ph);
   }
 
-  $("imName").textContent  = item.name;
-  $("imPrice").textContent = `${TENANT.currency}${parseFloat(item.price).toFixed(2)}`;
-  $("imDesc").textContent  = item.desc || "";
+  $("imName").textContent   = item.name;
+  $("imPrice").textContent  = `${TENANT.currency}${parseFloat(item.price).toFixed(2)}`;
+  $("imDesc").textContent   = item.desc || "";
   $("imQtyNum").textContent = "1";
   $("imNotes").value = "";
+
+  // ── COMBO OPTIONS ──────────────────────────────────────────────
+  const combos = MENU_DATA?.combos || [];
+  const combosSection = $("imCombosSection");
+  const combosEl      = $("imCombos");
+  modalCombo = null; // reset selected combo
+
+  if (combos.length) {
+    combosSection.style.display = "block";
+    combosEl.innerHTML = combos.map(c => `
+      <div class="combo-opt" data-cid="${c.id}">
+        <div class="combo-opt-ico">${c.emoji||"🔥"}</div>
+        <div class="combo-opt-info">
+          <div class="combo-opt-name">${c.name}</div>
+          ${c.desc?`<div class="combo-opt-desc">${c.desc}</div>`:""}
+        </div>
+        <div class="combo-opt-price">+${TENANT.currency}${parseFloat(c.price).toFixed(2)}</div>
+        <div class="combo-opt-radio"></div>
+      </div>`).join("");
+
+    combosEl.querySelectorAll(".combo-opt").forEach(el => {
+      el.addEventListener("click", () => {
+        const cid = el.dataset.cid;
+        if (modalCombo === cid) {
+          // deselect
+          modalCombo = null;
+          el.classList.remove("sel");
+        } else {
+          modalCombo = cid;
+          combosEl.querySelectorAll(".combo-opt").forEach(e => e.classList.remove("sel"));
+          el.classList.add("sel");
+        }
+        updateImAddBtn();
+      });
+    });
+  } else {
+    combosSection.style.display = "none";
+  }
 
   // Quick tags
   $("imTags").innerHTML = QUICK_TAGS.map(tag =>
@@ -656,6 +715,7 @@ function openItemModal(item) {
 
   $("itemModalOverlay").classList.add("on");
   document.body.style.overflow = "hidden";
+  updateImAddBtn();
 }
 
 function closeItemModal() {
@@ -670,10 +730,10 @@ $("itemModalOverlay").addEventListener("click", e => {
 });
 
 $("imQtyDec").addEventListener("click", () => {
-  if (modalQty > 1) { modalQty--; $("imQtyNum").textContent = modalQty; }
+  if (modalQty > 1) { modalQty--; $("imQtyNum").textContent = modalQty; updateImAddBtn(); }
 });
 $("imQtyInc").addEventListener("click", () => {
-  modalQty++; $("imQtyNum").textContent = modalQty;
+  modalQty++; $("imQtyNum").textContent = modalQty; updateImAddBtn();
 });
 
 $("imAddBtn").addEventListener("click", () => {
@@ -681,107 +741,21 @@ $("imAddBtn").addEventListener("click", () => {
 
   const tagNotes  = [...modalTags].join(", ");
   const freeNotes = $("imNotes").value.trim();
-  const notes     = [tagNotes, freeNotes].filter(Boolean).join(". ");
-  const cartKey   = `${modalItem.id}_${notes}`;
+  const combo     = (MENU_DATA?.combos||[]).find(c => c.id === modalCombo);
+  const comboNote = combo ? `Combo: ${combo.name}` : "";
+  const notes     = [comboNote, tagNotes, freeNotes].filter(Boolean).join(". ");
+
+  // Final price = item price + combo extra
+  const finalPrice = parseFloat(modalItem.price) + (combo ? parseFloat(combo.price) : 0);
+  const cartItem   = { ...modalItem, price: finalPrice };
+  const cartKey    = `${modalItem.id}_${notes}`;
 
   if (cart[cartKey]) cart[cartKey].qty += modalQty;
-  else cart[cartKey] = { item:modalItem, qty:modalQty, notes, cartKey };
+  else cart[cartKey] = { item:cartItem, qty:modalQty, notes, cartKey };
 
   updateDot();
   closeItemModal();
-  showToast(`Added — ${modalItem.name}${notes?" (customised)":""}`);
-
-  // ── COMBO UPSELL ──────────────────────────────────────────────
-  // Get upsell categories — from admin settings OR auto-detect
-  // as any category different from the item just added
-  const allCats = getCategories();
-
-  // Preferred upsell cats from admin (saved as upsellCategories)
-  let upsellCats = MENU_DATA?.upsellCategories || [];
-
-  // Fallback: try common names if admin hasn't configured yet
-  if (!upsellCats.length) {
-    upsellCats = allCats
-      .filter(c => /drink|beverage|side|fries|salad|dessert|sauce/i.test(c.label))
-      .map(c => c.id);
-  }
-
-  // Final fallback: last 2 categories that aren't the current item's category
-  if (!upsellCats.length) {
-    upsellCats = allCats
-      .filter(c => c.id !== modalItem.cat)
-      .slice(-2)
-      .map(c => c.id);
-  }
-
-  // Don't show combo if item is already in an upsell category
-  if (upsellCats.includes(modalItem.cat)) return;
-
-  const suggestions = getItems()
-    .filter(it => upsellCats.includes(it.cat) && it.available !== false)
-    .slice(0, 4);
-
-  if (suggestions.length) {
-    setTimeout(() => openComboPopup(suggestions), 400);
-  }
-});
-
-// ── COMBO POPUP ───────────────────────────────────────────────────
-let comboSelected = new Set();
-
-function openComboPopup(suggestions) {
-  comboSelected = new Set();
-
-  $("comboItems").innerHTML = suggestions.map(it => `
-    <div class="combo-item" data-cid="${it.id}">
-      ${it.img
-        ? `<img class="combo-item-img" src="${it.img}" loading="lazy">`
-        : `<div class="combo-item-img" style="display:flex;align-items:center;justify-content:center;font-size:22px">${getCategories().find(c=>c.id===it.cat)?.ico||"🍴"}</div>`}
-      <div class="combo-item-info">
-        <div class="combo-item-name">${it.name}</div>
-        <div class="combo-item-price">+${TENANT.currency}${parseFloat(it.price).toFixed(2)}</div>
-      </div>
-      <div class="combo-check">✓</div>
-    </div>`).join("");
-
-  $("comboItems").querySelectorAll(".combo-item").forEach(el => {
-    el.addEventListener("click", () => {
-      const id = el.dataset.cid;
-      if (comboSelected.has(id)) { comboSelected.delete(id); el.classList.remove("sel"); }
-      else                       { comboSelected.add(id);    el.classList.add("sel"); }
-      // Update button label
-      $("comboConfirm").textContent = comboSelected.size > 0
-        ? `Add ${comboSelected.size} item${comboSelected.size>1?"s":""} to Order`
-        : "Add to Order";
-    });
-  });
-
-  $("comboConfirm").textContent = "Add to Order";
-  $("comboOverlay").classList.add("on");
-  document.body.style.overflow = "hidden";
-}
-
-function closeComboPopup(msg) {
-  $("comboOverlay").classList.remove("on");
-  document.body.style.overflow = "";
-  if (msg) showToast(msg);
-}
-
-$("comboSkip").addEventListener("click", () => closeComboPopup(""));
-$("comboOverlay").addEventListener("click", e => {
-  if (e.target === $("comboOverlay")) closeComboPopup("");
-});
-
-$("comboConfirm").addEventListener("click", () => {
-  comboSelected.forEach(id => {
-    const it = getItems().find(i => i.id == id);
-    if (!it) return;
-    const key = `${it.id}_`;
-    if (cart[key]) cart[key].qty++;
-    else cart[key] = { item:it, qty:1, notes:"", cartKey:key };
-  });
-  updateDot();
-  closeComboPopup(comboSelected.size > 0 ? "🔥 Combo added!" : "");
+  showToast(`Added — ${modalItem.name}${combo ? ` + ${combo.name}` : ""}${tagNotes||freeNotes?" (customised)":""}`);
 });
 
 // ── CART ─────────────────────────────────────────────────────────

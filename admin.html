@@ -406,6 +406,9 @@ code{
         <button class="nav-item" onclick="showPanel('categories')" id="nav-categories">
           <span class="ico">📂</span> Categories
         </button>
+        <button class="nav-item" onclick="showPanel('combos')" id="nav-combos">
+          <span class="ico">🔥</span> Combos
+        </button>
       </div>
       <div class="sidebar-section" style="margin-top:8px">
         <div class="sidebar-label">Settings</div>
@@ -454,6 +457,28 @@ code{
             <div class="section-card-title">All Categories</div>
           </div>
           <div class="cat-chips" id="catChips"></div>
+        </div>
+      </div>
+
+      <!-- ══ COMBOS PANEL ══ -->
+      <div class="panel" id="panel-combos">
+        <div class="page-hd">
+          <div>
+            <div class="page-title">Combos</div>
+            <div class="page-sub">Define combo upgrades customers can add when ordering any item</div>
+          </div>
+          <button class="tb-btn primary" onclick="openComboModal()">+ Add Combo</button>
+        </div>
+
+        <div style="background:var(--orange-lo);border:1px solid rgba(244,124,32,.2);border-radius:12px;padding:14px 16px;margin-bottom:20px;font-size:13px;color:var(--muted);line-height:1.6">
+          💡 <strong style="color:var(--white)">How it works:</strong> When a customer opens any menu item, they'll see your combos listed below the customisation options. They pick one (or none) and the combo price is added to their item total.
+        </div>
+
+        <div class="section-card" id="combosListCard">
+          <div class="section-card-hd">
+            <div class="section-card-title">All Combos</div>
+          </div>
+          <div id="combosList"></div>
         </div>
       </div>
 
@@ -636,6 +661,48 @@ code{
       </div>
 
     </main>
+  </div>
+</div>
+
+<!-- ══ COMBO MODAL ══ -->
+<div class="modal-overlay" id="comboModal">
+  <div class="modal" style="max-width:480px">
+    <div class="modal-hd">
+      <div class="modal-title" id="comboModalTitle">Add Combo</div>
+      <button class="modal-close" onclick="closeComboModal()">✕</button>
+    </div>
+    <div class="modal-body">
+      <input type="hidden" id="combo-id">
+
+      <div class="form-row">
+        <label class="flabel">Combo Name *</label>
+        <input class="finput" id="combo-name" placeholder="e.g. Fries + Pepsi">
+      </div>
+
+      <div class="form-row">
+        <label class="flabel">What's included (description)</label>
+        <input class="finput" id="combo-desc" placeholder="e.g. Classic Fries + Can of Pepsi">
+      </div>
+
+      <div class="form-row">
+        <label class="flabel">Extra Price *</label>
+        <div style="display:flex;align-items:center;gap:8px">
+          <span style="color:var(--yellow);font-weight:700;font-size:18px">+$</span>
+          <input class="finput" id="combo-price" type="number" step="0.25" min="0" placeholder="2.00" style="flex:1">
+        </div>
+        <div style="font-size:11px;color:var(--muted);margin-top:5px">This amount is added on top of the item's original price.</div>
+      </div>
+
+      <div class="form-row">
+        <label class="flabel">Emoji (optional)</label>
+        <input class="finput" id="combo-emoji" placeholder="e.g. 🍟🥤" maxlength="8">
+      </div>
+
+      <div class="modal-footer">
+        <button class="btn" onclick="closeComboModal()">Cancel</button>
+        <button class="btn btn-primary" onclick="saveCombo()">Save Combo</button>
+      </div>
+    </div>
   </div>
 </div>
 
@@ -959,6 +1026,7 @@ function renderAll() {
   renderCatChips();
   renderCatSelect();
   renderRestaurantInfo();
+  renderCombos();
   updateStarterJson();
 }
 
@@ -1278,7 +1346,98 @@ function copyStarterJson() {
     .catch(() => alert("Copy failed — please select and copy the text manually."));
 }
 
+// ── COMBOS ───────────────────────────────────────────────────────
+function renderCombos() {
+  const combos = menuData.combos || [];
+  const el = document.getElementById("combosList");
+  if (!combos.length) {
+    el.innerHTML = `<div style="text-align:center;padding:40px 20px;color:var(--muted)">
+      <div style="font-size:32px;margin-bottom:10px">🔥</div>
+      <div style="font-size:15px;font-weight:600;color:var(--white);margin-bottom:4px">No combos yet</div>
+      <div style="font-size:13px">Click "+ Add Combo" to create your first upsell combo</div>
+    </div>`;
+    return;
+  }
+  el.innerHTML = combos.map(c => `
+    <div class="admin-item">
+      <div style="width:52px;height:52px;border-radius:8px;background:var(--orange-lo);border:1px solid rgba(244,124,32,.2);display:flex;align-items:center;justify-content:center;font-size:24px;flex-shrink:0">
+        ${c.emoji || "🔥"}
+      </div>
+      <div class="ai-info">
+        <div class="ai-name">${c.name}</div>
+        <div class="ai-meta">${c.desc || "No description"}</div>
+      </div>
+      <div class="ai-price" style="color:var(--orange)">+$${parseFloat(c.price).toFixed(2)}</div>
+      <div class="ai-actions">
+        <button class="icon-btn" onclick="openComboModal('${c.id}')" title="Edit">✏️</button>
+        <button class="icon-btn del" onclick="deleteCombo('${c.id}')" title="Delete">🗑️</button>
+      </div>
+    </div>`).join("");
+}
+
+function openComboModal(id) {
+  document.getElementById("comboModalTitle").textContent = id ? "Edit Combo" : "Add Combo";
+  document.getElementById("combo-id").value    = id || "";
+  document.getElementById("combo-name").value  = "";
+  document.getElementById("combo-desc").value  = "";
+  document.getElementById("combo-price").value = "";
+  document.getElementById("combo-emoji").value = "";
+
+  if (id) {
+    const c = (menuData.combos||[]).find(x => x.id === id);
+    if (c) {
+      document.getElementById("combo-name").value  = c.name  || "";
+      document.getElementById("combo-desc").value  = c.desc  || "";
+      document.getElementById("combo-price").value = c.price || "";
+      document.getElementById("combo-emoji").value = c.emoji || "";
+    }
+  }
+  document.getElementById("comboModal").classList.add("on");
+}
+
+function closeComboModal() {
+  document.getElementById("comboModal").classList.remove("on");
+}
+
+function saveCombo() {
+  const name  = document.getElementById("combo-name").value.trim();
+  const price = parseFloat(document.getElementById("combo-price").value);
+  if (!name)      { alert("Please enter a combo name."); return; }
+  if (isNaN(price)|| price < 0) { alert("Please enter a valid price."); return; }
+
+  const id    = document.getElementById("combo-id").value;
+  const combo = {
+    id:    id || Date.now().toString(),
+    name,
+    desc:  document.getElementById("combo-desc").value.trim(),
+    price,
+    emoji: document.getElementById("combo-emoji").value.trim() || "🔥",
+  };
+
+  if (!menuData.combos) menuData.combos = [];
+  if (id) {
+    const idx = menuData.combos.findIndex(c => c.id === id);
+    if (idx > -1) menuData.combos[idx] = combo;
+  } else {
+    menuData.combos.push(combo);
+  }
+
+  renderCombos();
+  closeComboModal();
+  setSaveStatus("saving", "Unsaved changes");
+}
+
+function deleteCombo(id) {
+  if (!confirm("Delete this combo?")) return;
+  menuData.combos = (menuData.combos||[]).filter(c => c.id !== id);
+  renderCombos();
+  setSaveStatus("saving", "Unsaved changes");
+}
+
 // ── CLOSE MODALS ON BACKDROP ──────────────────────────────────────
+document.getElementById("comboModal").addEventListener("click", e => {
+  if (e.target === document.getElementById("comboModal")) closeComboModal();
+});
 document.getElementById("itemModal").addEventListener("click", e => {
   if (e.target === document.getElementById("itemModal")) closeItemModal();
 });
