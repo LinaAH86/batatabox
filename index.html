@@ -687,31 +687,43 @@ $("imAddBtn").addEventListener("click", () => {
   if (cart[cartKey]) cart[cartKey].qty += modalQty;
   else cart[cartKey] = { item:modalItem, qty:modalQty, notes, cartKey };
 
-  // Always update dot immediately
   updateDot();
   closeItemModal();
+  showToast(`Added — ${modalItem.name}${notes?" (customised)":""}`);
 
-  // Show combo popup only if:
-  // 1. The item is NOT already a drink or side
-  // 2. There are upsell suggestions available
-  const upsellCats = MENU_DATA?.upsellCategories?.length
-    ? MENU_DATA.upsellCategories
-    : ["drinks","sides"];
+  // ── COMBO UPSELL ──────────────────────────────────────────────
+  // Get upsell categories — from admin settings OR auto-detect
+  // as any category different from the item just added
+  const allCats = getCategories();
 
-  const isUpsellItem = upsellCats.includes(modalItem.cat);
+  // Preferred upsell cats from admin (saved as upsellCategories)
+  let upsellCats = MENU_DATA?.upsellCategories || [];
 
-  if (!isUpsellItem) {
-    const suggestions = getItems().filter(it =>
-      upsellCats.includes(it.cat) && it.available !== false
-    ).slice(0, 4);
-    if (suggestions.length) {
-      showToast(`Added — ${modalItem.name}${notes?" (customised)":""}`);
-      setTimeout(() => openComboPopup(suggestions), 350); // wait for item modal to close
-      return;
-    }
+  // Fallback: try common names if admin hasn't configured yet
+  if (!upsellCats.length) {
+    upsellCats = allCats
+      .filter(c => /drink|beverage|side|fries|salad|dessert|sauce/i.test(c.label))
+      .map(c => c.id);
   }
 
-  showToast(`Added — ${modalItem.name}${notes?" (customised)":""}`);
+  // Final fallback: last 2 categories that aren't the current item's category
+  if (!upsellCats.length) {
+    upsellCats = allCats
+      .filter(c => c.id !== modalItem.cat)
+      .slice(-2)
+      .map(c => c.id);
+  }
+
+  // Don't show combo if item is already in an upsell category
+  if (upsellCats.includes(modalItem.cat)) return;
+
+  const suggestions = getItems()
+    .filter(it => upsellCats.includes(it.cat) && it.available !== false)
+    .slice(0, 4);
+
+  if (suggestions.length) {
+    setTimeout(() => openComboPopup(suggestions), 400);
+  }
 });
 
 // ── COMBO POPUP ───────────────────────────────────────────────────
