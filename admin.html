@@ -769,6 +769,17 @@ code{
         </div>
       </div>
 
+      <div class="form-row" style="padding:14px;background:rgba(255,255,255,.04);border:1px solid var(--line-md);border-radius:var(--r);margin-bottom:10px">
+        <div style="display:flex;align-items:center;justify-content:space-between;gap:12px">
+          <div>
+            <div style="font-size:13px;font-weight:600;color:var(--white);margin-bottom:3px">✏️ Allow Customisation</div>
+            <div style="font-size:11px;color:var(--muted);line-height:1.4">Show ingredient tags & special notes field (e.g. no sauce, extra spicy). Turn off for drinks, sides.</div>
+          </div>
+          <button class="availability-toggle off" id="item-custom-toggle" onclick="toggleItemCustom()" style="flex-shrink:0"></button>
+        </div>
+      </div>
+      <input type="hidden" id="item-custom" value="false">
+
       <div class="form-row" style="padding:14px;background:var(--orange-lo);border:1px solid rgba(244,124,32,.2);border-radius:var(--r)">
         <div style="display:flex;align-items:center;justify-content:space-between;gap:12px">
           <div>
@@ -1209,7 +1220,8 @@ function openItemModal(id) {
   });
   resetImgPreview();
   resetBadgeOpts();
-  setItemComboToggle(false); // default off
+  setItemComboToggle(false);
+  setItemCustomToggle(false);
 
   if (id) {
     const it = menuData.items.find(i => i.id == id);
@@ -1223,7 +1235,8 @@ function openItemModal(id) {
     document.getElementById("item-img-url").value = it.img || "";
     if (it.img) showImgPreview(it.img);
     selectBadge(it.badge || "");
-    setItemComboToggle(it.showCombo === true);
+    setItemComboToggle(it.showCombo  === true);
+    setItemCustomToggle(it.allowCustom === true);
   }
 
   document.getElementById("itemModal").classList.add("on");
@@ -1235,10 +1248,18 @@ function setItemComboToggle(val) {
   btn.classList.toggle("on",  val);
   btn.classList.toggle("off", !val);
 }
-
 function toggleItemCombo() {
-  const current = document.getElementById("item-combo").value === "true";
-  setItemComboToggle(!current);
+  setItemComboToggle(document.getElementById("item-combo").value !== "true");
+}
+
+function setItemCustomToggle(val) {
+  const btn = document.getElementById("item-custom-toggle");
+  document.getElementById("item-custom").value = val ? "true" : "false";
+  btn.classList.toggle("on",  val);
+  btn.classList.toggle("off", !val);
+}
+function toggleItemCustom() {
+  setItemCustomToggle(document.getElementById("item-custom").value !== "true");
 }
 
 function closeItemModal() {
@@ -1256,15 +1277,16 @@ function saveItem() {
 
   const img       = currentImgBase64 || document.getElementById("item-img-url").value.trim();
   const desc      = document.getElementById("item-desc").value.trim();
-  const badge     = document.getElementById("item-badge").value;
-  const showCombo = document.getElementById("item-combo").value === "true";
+  const badge       = document.getElementById("item-badge").value;
+  const showCombo   = document.getElementById("item-combo").value  === "true";
+  const allowCustom = document.getElementById("item-custom").value === "true";
 
   if (editingItemId) {
     const idx = menuData.items.findIndex(i => i.id == editingItemId);
-    if (idx > -1) menuData.items[idx] = { ...menuData.items[idx], name, cat, price, desc, img, badge, showCombo };
+    if (idx > -1) menuData.items[idx] = { ...menuData.items[idx], name, cat, price, desc, img, badge, showCombo, allowCustom };
   } else {
     const id = Date.now().toString();
-    menuData.items.push({ id, name, cat, price, desc, img, badge, showCombo, available:true });
+    menuData.items.push({ id, name, cat, price, desc, img, badge, showCombo, allowCustom, available:true });
   }
 
   renderAll();

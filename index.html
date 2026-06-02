@@ -427,7 +427,7 @@ img{display:block}
 
 <footer class="footer">
   <div class="footer-brand" id="footerBrand">بطاطا Box</div>
-  <div class="footer-copy">© 2026 Batata Box. All rights reserved.</div>
+  <div class="footer-copy">© 2025 Batata Box. All rights reserved.</div>
   <div class="footer-pow">Powered by Ocho POS</div>
   <div class="footer-sarl">by SolutionsLead SARL</div>
 </footer>
@@ -451,14 +451,14 @@ img{display:block}
         <div id="imCombos" style="display:flex;flex-direction:column;gap:8px;margin-bottom:16px"></div>
       </div>
 
-      <!-- QUICK TAGS -->
-      <div class="im-section-label">Customise</div>
-      <div class="im-tags" id="imTags"></div>
-
-      <!-- FREE TEXT NOTES -->
-      <div class="im-section-label">Special Instructions</div>
-      <textarea class="im-notes" id="imNotes" placeholder="e.g. No sauce, extra crispy, no onions…" rows="3"></textarea>
-      <div class="im-notes-hint">We'll do our best to accommodate your request.</div>
+      <!-- CUSTOMISATION (only shown if item has allowCustom) -->
+      <div id="imCustomSection">
+        <div class="im-section-label">Customise</div>
+        <div class="im-tags" id="imTags"></div>
+        <div class="im-section-label">Special Instructions</div>
+        <textarea class="im-notes" id="imNotes" placeholder="e.g. No sauce, extra crispy, no onions…" rows="3"></textarea>
+        <div class="im-notes-hint">We'll do our best to accommodate your request.</div>
+      </div>
     </div>
 
     <!-- QTY + ADD TO ORDER -->
@@ -694,7 +694,6 @@ function openItemModal(item) {
   $("imPrice").textContent  = `${TENANT.currency}${parseFloat(item.price).toFixed(2)}`;
   $("imDesc").textContent   = item.desc || "";
   $("imQtyNum").textContent = "1";
-  $("imNotes").value = "";
 
   // ── COMBO OPTIONS ──────────────────────────────────────────────
   const combos = MENU_DATA?.combos || [];
@@ -735,17 +734,25 @@ function openItemModal(item) {
     combosSection.style.display = "none";
   }
 
-  // Quick tags
-  $("imTags").innerHTML = QUICK_TAGS.map(tag =>
-    `<button class="im-tag" data-tag="${tag}">${tag}</button>`
-  ).join("");
-  $("imTags").querySelectorAll(".im-tag").forEach(btn => {
-    btn.addEventListener("click", () => {
-      const tag = btn.dataset.tag;
-      if (modalTags.has(tag)) { modalTags.delete(tag); btn.classList.remove("sel"); }
-      else                    { modalTags.add(tag);    btn.classList.add("sel"); }
+  // ── CUSTOMISATION ──────────────────────────────────────────────
+  const customSection = $("imCustomSection");
+  if (item.allowCustom === true) {
+    customSection.style.display = "block";
+    $("imTags").innerHTML = QUICK_TAGS.map(tag =>
+      `<button class="im-tag" data-tag="${tag}">${tag}</button>`
+    ).join("");
+    $("imTags").querySelectorAll(".im-tag").forEach(btn => {
+      btn.addEventListener("click", () => {
+        const tag = btn.dataset.tag;
+        if (modalTags.has(tag)) { modalTags.delete(tag); btn.classList.remove("sel"); }
+        else                    { modalTags.add(tag);    btn.classList.add("sel"); }
+      });
     });
-  });
+    $("imNotes").value = "";
+  } else {
+    customSection.style.display = "none";
+    modalTags = new Set();
+  }
 
   $("itemModalOverlay").classList.add("on");
   document.body.style.overflow = "hidden";
