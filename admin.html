@@ -769,6 +769,17 @@ code{
         </div>
       </div>
 
+      <div class="form-row" style="padding:14px;background:var(--orange-lo);border:1px solid rgba(244,124,32,.2);border-radius:var(--r)">
+        <div style="display:flex;align-items:center;justify-content:space-between;gap:12px">
+          <div>
+            <div style="font-size:13px;font-weight:600;color:var(--white);margin-bottom:3px">🔥 Show Combo Upsell</div>
+            <div style="font-size:11px;color:var(--muted);line-height:1.4">When customer adds this item, show the "Make it a Combo" options</div>
+          </div>
+          <button class="availability-toggle off" id="item-combo-toggle" onclick="toggleItemCombo()" style="flex-shrink:0"></button>
+        </div>
+      </div>
+      <input type="hidden" id="item-combo" value="false">
+
       <div class="modal-footer">
         <button class="btn" onclick="closeItemModal()">Cancel</button>
         <button class="btn btn-primary" onclick="saveItem()">Save Item</button>
@@ -1066,7 +1077,7 @@ function renderItemsByCat() {
               ? `<img class="ai-thumb" src="${it.img}" loading="lazy" onerror="this.style.display='none'">`
               : `<div class="ai-thumb">${c.ico||"🍴"}</div>`}
             <div class="ai-info">
-              <div class="ai-name">${it.name}${it.badge?` <span style="font-size:10px;background:var(--orange-lo);color:var(--orange);padding:1px 6px;border-radius:20px;font-weight:600">${it.badge.toUpperCase()}</span>`:""}</div>
+              <div class="ai-name">${it.name}${it.badge?` <span style="font-size:10px;background:var(--orange-lo);color:var(--orange);padding:1px 6px;border-radius:20px;font-weight:600">${it.badge.toUpperCase()}</span>`:""}${it.showCombo?` <span style="font-size:10px;background:rgba(245,200,66,.1);color:var(--yellow);padding:1px 6px;border-radius:20px;font-weight:600">🔥 COMBO</span>`:""}</div>
               <div class="ai-meta">${it.desc||"No description"}</div>
             </div>
             <div class="ai-price">$${parseFloat(it.price).toFixed(2)}</div>
@@ -1198,22 +1209,36 @@ function openItemModal(id) {
   });
   resetImgPreview();
   resetBadgeOpts();
+  setItemComboToggle(false); // default off
 
   if (id) {
     const it = menuData.items.find(i => i.id == id);
     if (!it) return;
-    document.getElementById("item-id").value    = it.id;
-    document.getElementById("item-name").value  = it.name;
-    document.getElementById("item-desc").value  = it.desc || "";
-    document.getElementById("item-price").value = it.price;
-    document.getElementById("item-cat").value   = it.cat;
-    document.getElementById("item-badge").value = it.badge || "";
+    document.getElementById("item-id").value      = it.id;
+    document.getElementById("item-name").value    = it.name;
+    document.getElementById("item-desc").value    = it.desc || "";
+    document.getElementById("item-price").value   = it.price;
+    document.getElementById("item-cat").value     = it.cat;
+    document.getElementById("item-badge").value   = it.badge || "";
     document.getElementById("item-img-url").value = it.img || "";
     if (it.img) showImgPreview(it.img);
     selectBadge(it.badge || "");
+    setItemComboToggle(it.showCombo === true);
   }
 
   document.getElementById("itemModal").classList.add("on");
+}
+
+function setItemComboToggle(val) {
+  const btn = document.getElementById("item-combo-toggle");
+  document.getElementById("item-combo").value = val ? "true" : "false";
+  btn.classList.toggle("on",  val);
+  btn.classList.toggle("off", !val);
+}
+
+function toggleItemCombo() {
+  const current = document.getElementById("item-combo").value === "true";
+  setItemComboToggle(!current);
 }
 
 function closeItemModal() {
@@ -1229,16 +1254,17 @@ function saveItem() {
   if (!cat)     { alert("Please select a category."); return; }
   if (isNaN(price)) { alert("Please enter a valid price."); return; }
 
-  const img   = currentImgBase64 || document.getElementById("item-img-url").value.trim();
-  const desc  = document.getElementById("item-desc").value.trim();
-  const badge = document.getElementById("item-badge").value;
+  const img       = currentImgBase64 || document.getElementById("item-img-url").value.trim();
+  const desc      = document.getElementById("item-desc").value.trim();
+  const badge     = document.getElementById("item-badge").value;
+  const showCombo = document.getElementById("item-combo").value === "true";
 
   if (editingItemId) {
     const idx = menuData.items.findIndex(i => i.id == editingItemId);
-    if (idx > -1) menuData.items[idx] = { ...menuData.items[idx], name, cat, price, desc, img, badge };
+    if (idx > -1) menuData.items[idx] = { ...menuData.items[idx], name, cat, price, desc, img, badge, showCombo };
   } else {
     const id = Date.now().toString();
-    menuData.items.push({ id, name, cat, price, desc, img, badge, available:true });
+    menuData.items.push({ id, name, cat, price, desc, img, badge, showCombo, available:true });
   }
 
   renderAll();
