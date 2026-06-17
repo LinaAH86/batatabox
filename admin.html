@@ -251,6 +251,18 @@ select.finput option{background:#222}
 
 /* BADGE SELECTOR */
 .badge-opts{display:flex;gap:8px;flex-wrap:wrap}
+
+/* SIZE ROWS */
+.size-row{display:flex;gap:8px;align-items:center}
+.size-row input{flex:1}
+.size-row .size-del{
+  width:32px;height:32px;border-radius:8px;flex-shrink:0;
+  background:rgba(239,68,68,.1);border:1px solid rgba(239,68,68,.25);
+  color:#ef4444;font-size:14px;
+  display:flex;align-items:center;justify-content:center;
+  transition:background .15s;
+}
+.size-row .size-del:hover{background:rgba(239,68,68,.2)}
 .badge-opt{
   padding:5px 12px;border-radius:var(--pill);
   font-size:11px;font-weight:700;letter-spacing:.5px;
@@ -739,8 +751,9 @@ code{
 
       <div class="form-row-2">
         <div>
-          <label class="flabel">Price *</label>
+          <label class="flabel">Base Price *</label>
           <input class="finput" id="item-price" type="number" step="0.01" min="0" placeholder="0.00">
+          <div style="font-size:11px;color:var(--muted);margin-top:5px">Used when no size is selected.</div>
         </div>
         <div>
           <label class="flabel">Badge</label>
@@ -754,6 +767,21 @@ code{
           <input type="hidden" id="item-badge" value="">
         </div>
       </div>
+
+      <div class="form-row" style="padding:14px;background:rgba(255,255,255,.04);border:1px solid var(--line-md);border-radius:var(--r);margin-bottom:10px">
+        <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:12px">
+          <div>
+            <div style="font-size:13px;font-weight:600;color:var(--white);margin-bottom:3px">📏 Has Sizes</div>
+            <div style="font-size:11px;color:var(--muted);line-height:1.4">e.g. Small / Medium / Large with different prices</div>
+          </div>
+          <button class="availability-toggle off" id="item-sizes-toggle" onclick="toggleItemSizes()" style="flex-shrink:0"></button>
+        </div>
+        <div id="sizesRowsWrap" style="display:none">
+          <div id="sizesRows" style="display:flex;flex-direction:column;gap:8px;margin-bottom:10px"></div>
+          <button class="btn" style="width:100%;padding:9px;font-size:13px" onclick="addSizeRow()">+ Add Size</button>
+        </div>
+      </div>
+      <input type="hidden" id="item-has-sizes" value="false">
 
       <div class="form-row">
         <label class="flabel">Item Image</label>
@@ -830,7 +858,7 @@ code{
 
 // ── CONFIG ──────────────────────────────────────────────────────
 const SUPABASE_URL = "https://mevjtwhxhprpeaohbuwe.supabase.co";
-const SUPABASE_KEY = "sb_publishable_QV-iQgfK1scuJ96rzKIqNg_t3qtvsu4";
+const SUPABASE_KEY = "sb_publishable_vJftsz9oezOzkPkyt5rnEg_fTdX9H4l";
 const TENANT_SLUG  = "batata-box";
 const STORAGE_BUCKET = "menu-images";
 
@@ -1088,7 +1116,7 @@ function renderItemsByCat() {
               ? `<img class="ai-thumb" src="${it.img}" loading="lazy" onerror="this.style.display='none'">`
               : `<div class="ai-thumb">${c.ico||"🍴"}</div>`}
             <div class="ai-info">
-              <div class="ai-name">${it.name}${it.badge?` <span style="font-size:10px;background:var(--orange-lo);color:var(--orange);padding:1px 6px;border-radius:20px;font-weight:600">${it.badge.toUpperCase()}</span>`:""}${it.showCombo?` <span style="font-size:10px;background:rgba(245,200,66,.1);color:var(--yellow);padding:1px 6px;border-radius:20px;font-weight:600">🔥 COMBO</span>`:""}</div>
+              <div class="ai-name">${it.name}${it.badge?` <span style="font-size:10px;background:var(--orange-lo);color:var(--orange);padding:1px 6px;border-radius:20px;font-weight:600">${it.badge.toUpperCase()}</span>`:""}${it.showCombo?` <span style="font-size:10px;background:rgba(245,200,66,.1);color:var(--yellow);padding:1px 6px;border-radius:20px;font-weight:600">🔥 COMBO</span>`:""}${it.sizes&&it.sizes.length?` <span style="font-size:10px;background:rgba(255,255,255,.08);color:var(--muted);padding:1px 6px;border-radius:20px;font-weight:600">📏 ${it.sizes.length} SIZES</span>`:""}</div>
               <div class="ai-meta">${it.desc||"No description"}</div>
             </div>
             <div class="ai-price">$${parseFloat(it.price).toFixed(2)}</div>
@@ -1222,6 +1250,8 @@ function openItemModal(id) {
   resetBadgeOpts();
   setItemComboToggle(false);
   setItemCustomToggle(false);
+  setItemSizesToggle(false);
+  document.getElementById("sizesRows").innerHTML = "";
 
   if (id) {
     const it = menuData.items.find(i => i.id == id);
@@ -1237,6 +1267,10 @@ function openItemModal(id) {
     selectBadge(it.badge || "");
     setItemComboToggle(it.showCombo  === true);
     setItemCustomToggle(it.allowCustom === true);
+    if (it.sizes && it.sizes.length) {
+      setItemSizesToggle(true);
+      it.sizes.forEach(s => addSizeRow(s.name, s.price));
+    }
   }
 
   document.getElementById("itemModal").classList.add("on");
@@ -1262,6 +1296,45 @@ function toggleItemCustom() {
   setItemCustomToggle(document.getElementById("item-custom").value !== "true");
 }
 
+// ── SIZES ────────────────────────────────────────────────────────
+function setItemSizesToggle(val) {
+  const btn = document.getElementById("item-sizes-toggle");
+  document.getElementById("item-has-sizes").value = val ? "true" : "false";
+  btn.classList.toggle("on",  val);
+  btn.classList.toggle("off", !val);
+  document.getElementById("sizesRowsWrap").style.display = val ? "block" : "none";
+}
+function toggleItemSizes() {
+  const newVal = document.getElementById("item-has-sizes").value !== "true";
+  setItemSizesToggle(newVal);
+  if (newVal && document.getElementById("sizesRows").children.length === 0) {
+    addSizeRow(); addSizeRow(); // start with 2 blank rows
+  }
+}
+
+function addSizeRow(name = "", price = "") {
+  const wrap = document.getElementById("sizesRows");
+  const row = document.createElement("div");
+  row.className = "size-row";
+  row.innerHTML = `
+    <input class="finput size-name" placeholder="e.g. Medium" value="${name}">
+    <input class="finput size-price" type="number" step="0.01" min="0" placeholder="Price" value="${price}" style="max-width:110px">
+    <button class="size-del" onclick="this.parentElement.remove()">✕</button>
+  `;
+  wrap.appendChild(row);
+}
+
+function getSizesFromForm() {
+  const rows = document.querySelectorAll("#sizesRows .size-row");
+  const sizes = [];
+  rows.forEach(row => {
+    const name  = row.querySelector(".size-name").value.trim();
+    const price = parseFloat(row.querySelector(".size-price").value);
+    if (name && !isNaN(price)) sizes.push({ name, price });
+  });
+  return sizes;
+}
+
 function closeItemModal() {
   document.getElementById("itemModal").classList.remove("on");
   editingItemId = null;
@@ -1280,13 +1353,15 @@ function saveItem() {
   const badge       = document.getElementById("item-badge").value;
   const showCombo   = document.getElementById("item-combo").value  === "true";
   const allowCustom = document.getElementById("item-custom").value === "true";
+  const hasSizes    = document.getElementById("item-has-sizes").value === "true";
+  const sizes       = hasSizes ? getSizesFromForm() : [];
 
   if (editingItemId) {
     const idx = menuData.items.findIndex(i => i.id == editingItemId);
-    if (idx > -1) menuData.items[idx] = { ...menuData.items[idx], name, cat, price, desc, img, badge, showCombo, allowCustom };
+    if (idx > -1) menuData.items[idx] = { ...menuData.items[idx], name, cat, price, desc, img, badge, showCombo, allowCustom, sizes };
   } else {
     const id = Date.now().toString();
-    menuData.items.push({ id, name, cat, price, desc, img, badge, showCombo, allowCustom, available:true });
+    menuData.items.push({ id, name, cat, price, desc, img, badge, showCombo, allowCustom, sizes, available:true });
   }
 
   renderAll();

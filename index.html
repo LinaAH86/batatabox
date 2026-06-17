@@ -427,7 +427,7 @@ img{display:block}
 
 <footer class="footer">
   <div class="footer-brand" id="footerBrand">بطاطا Box</div>
-  <div class="footer-copy">© 2026 Batata Box. All rights reserved.</div>
+  <div class="footer-copy">© 2025 Batata Box. All rights reserved.</div>
   <div class="footer-pow">Powered by Ocho POS</div>
   <div class="footer-sarl">by SolutionsLead SARL</div>
 </footer>
@@ -444,6 +444,12 @@ img{display:block}
         <div class="im-price" id="imPrice"></div>
       </div>
       <div class="im-desc" id="imDesc"></div>
+
+      <!-- SIZE OPTIONS -->
+      <div id="imSizesSection" style="display:none">
+        <div class="im-section-label" style="margin-top:4px">📏 Choose Size</div>
+        <div id="imSizes" style="display:flex;flex-direction:column;gap:8px;margin-bottom:16px"></div>
+      </div>
 
       <!-- COMBO OPTIONS -->
       <div id="imCombosSection" style="display:none">
@@ -531,7 +537,7 @@ img{display:block}
    ================================================================ */
 
 const SUPABASE_URL = "https://mevjtwhxhprpeaohbuwe.supabase.co";
-const SUPABASE_KEY = "sb_publishable_QV-iQgfK1scuJ96rzKIqNg_t3qtvsu4";
+const SUPABASE_KEY = "sb_publishable_vJftsz9oezOzkPkyt5rnEg_fTdX9H4l";
 const TENANT_SLUG  = "batata-box";
 
 const TENANT = { currency:"$", vatEnabled:false, vatPct:11, whatsapp:"", lbpRate:89500 };
@@ -553,11 +559,17 @@ let modalItem  = null;
 let modalQty   = 1;
 let modalTags  = new Set();
 let modalCombo = null; // selected combo id
+let modalSize  = null; // selected size index
 
 function updateImAddBtn() {
   const combo = (MENU_DATA?.combos||[]).find(c => c.id === modalCombo);
-  const basePrice = parseFloat(modalItem?.price || 0);
   const comboExtra = combo ? parseFloat(combo.price) : 0;
+
+  let basePrice = parseFloat(modalItem?.price || 0);
+  if (modalSize !== null && modalItem?.sizes?.[modalSize]) {
+    basePrice = parseFloat(modalItem.sizes[modalSize].price);
+  }
+
   const total = (basePrice + comboExtra) * modalQty;
   $("imAddBtn").textContent = `Add to Order — ${TENANT.currency}${total.toFixed(2)}`;
 }
@@ -694,6 +706,42 @@ function openItemModal(item) {
   $("imPrice").textContent  = `${TENANT.currency}${parseFloat(item.price).toFixed(2)}`;
   $("imDesc").textContent   = item.desc || "";
   $("imQtyNum").textContent = "1";
+  modalSize = null;
+
+  // ── SIZE OPTIONS ───────────────────────────────────────────────
+  const sizesSection = $("imSizesSection");
+  const sizesEl       = $("imSizes");
+  if (item.sizes && item.sizes.length) {
+    sizesSection.style.display = "block";
+    sizesEl.innerHTML = item.sizes.map((s, idx) => `
+      <div class="combo-opt" data-sidx="${idx}">
+        <div class="combo-opt-ico">📏</div>
+        <div class="combo-opt-info">
+          <div class="combo-opt-name">${s.name}</div>
+        </div>
+        <div class="combo-opt-price">${TENANT.currency}${parseFloat(s.price).toFixed(2)}</div>
+        <div class="combo-opt-radio"></div>
+      </div>`).join("");
+
+    sizesEl.querySelectorAll(".combo-opt").forEach(el => {
+      el.addEventListener("click", () => {
+        const idx = parseInt(el.dataset.sidx);
+        if (modalSize === idx) {
+          modalSize = null;
+          el.classList.remove("sel");
+          $("imPrice").textContent = `${TENANT.currency}${parseFloat(item.price).toFixed(2)}`;
+        } else {
+          modalSize = idx;
+          sizesEl.querySelectorAll(".combo-opt").forEach(e => e.classList.remove("sel"));
+          el.classList.add("sel");
+          $("imPrice").textContent = `${TENANT.currency}${parseFloat(item.sizes[idx].price).toFixed(2)}`;
+        }
+        updateImAddBtn();
+      });
+    });
+  } else {
+    sizesSection.style.display = "none";
+  }
 
   // ── COMBO OPTIONS ──────────────────────────────────────────────
   const combos = MENU_DATA?.combos || [];
@@ -781,22 +829,28 @@ $("imAddBtn").addEventListener("click", () => {
   if (!modalItem) return;
 
   const tagNotes  = [...modalTags].join(", ");
-  const freeNotes = $("imNotes").value.trim();
+  const freeNotes = $("imNotes")?.value.trim() || "";
   const combo     = (MENU_DATA?.combos||[]).find(c => c.id === modalCombo);
-  const comboNote = combo ? `Combo: ${combo.name}` : "";
-  const notes     = [comboNote, tagNotes, freeNotes].filter(Boolean).join(". ");
+  const size      = (modalSize !== null && modalItem.sizes) ? modalItem.sizes[modalSize] : null;
 
-  // Final price = item price + combo extra
-  const finalPrice = parseFloat(modalItem.price) + (combo ? parseFloat(combo.price) : 0);
-  const cartItem   = { ...modalItem, price: finalPrice };
-  const cartKey    = `${modalItem.id}_${notes}`;
+  const sizeNote  = size  ? `Size: ${size.name}` : "";
+  const comboNote = combo ? `Combo: ${combo.name}` : "";
+  const notes     = [sizeNote, comboNote, tagNotes, freeNotes].filter(Boolean).join(". ");
+
+  // Final price = (size price or base price) + combo extra
+  const basePrice  = size ? parseFloat(size.price) : parseFloat(modalItem.price);
+  const finalPrice = basePrice + (combo ? parseFloat(combo.price) : 0);
+
+  const displayName = size ? `${modalItem.name} (${size.name})` : modalItem.name;
+  const cartItem     = { ...modalItem, name: displayName, price: finalPrice };
+  const cartKey       = `${modalItem.id}_${notes}`;
 
   if (cart[cartKey]) cart[cartKey].qty += modalQty;
   else cart[cartKey] = { item:cartItem, qty:modalQty, notes, cartKey };
 
   updateDot();
   closeItemModal();
-  showToast(`Added — ${modalItem.name}${combo ? ` + ${combo.name}` : ""}${tagNotes||freeNotes?" (customised)":""}`);
+  showToast(`Added — ${displayName}${combo ? ` + ${combo.name}` : ""}${tagNotes||freeNotes?" (customised)":""}`);
 });
 
 // ── CART ─────────────────────────────────────────────────────────
