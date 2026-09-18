@@ -144,6 +144,7 @@ img{display:block}
 .item-right{display:flex;flex-direction:column;align-items:flex-end;gap:8px;flex-shrink:0}
 .item-price{font-size:15px;font-weight:700;color:var(--yellow);white-space:nowrap}
 .item-price sub{font-size:10px;opacity:.7;vertical-align:baseline;font-weight:400}
+.ci-price-usd{font-size:11px;font-weight:500;color:var(--muted);margin-left:4px}
 .add-btn{
   width:28px;height:28px;border-radius:50%;
   background:var(--orange);color:#fff;
@@ -561,6 +562,19 @@ let modalTags  = new Set();
 let modalCombo = null; // selected combo id
 let modalSize  = null; // selected size index
 
+// ── PRICE FORMATTING ─────────────────────────────────────────────
+// LBP is the primary price on the menu; USD appears alongside in the cart/checkout.
+// Round LBP to nearest 1,000 for a clean look.
+function toLbp(usd) {
+  return Math.round((parseFloat(usd) || 0) * TENANT.lbpRate / 1000) * 1000;
+}
+function fmtLbp(usd) {
+  return `${toLbp(usd).toLocaleString()} LBP`;
+}
+function fmtUsd(usd) {
+  return `${TENANT.currency}${(parseFloat(usd) || 0).toFixed(2)}`;
+}
+
 function updateImAddBtn() {
   const combo = (MENU_DATA?.combos||[]).find(c => c.id === modalCombo);
   const comboExtra = combo ? parseFloat(combo.price) : 0;
@@ -571,7 +585,7 @@ function updateImAddBtn() {
   }
 
   const total = (basePrice + comboExtra) * modalQty;
-  $("imAddBtn").textContent = `Add to Order — ${TENANT.currency}${total.toFixed(2)}`;
+  $("imAddBtn").textContent = `Add to Order — ${fmtLbp(total)}`;
 }
 
 const $ = id => document.getElementById(id);
@@ -665,7 +679,7 @@ function render() {
               ${it.desc?`<div class="item-desc">${it.desc}</div>`:""}
             </div>
             <div class="item-right">
-              <div class="item-price"><sub>${TENANT.currency}</sub>${parseFloat(it.price).toFixed(2)}</div>
+              <div class="item-price">${fmtLbp(it.price)}</div>
               <button class="add-btn" data-id="${it.id}" aria-label="Add ${it.name}">+</button>
             </div>
           </div>`).join("")}
@@ -703,7 +717,7 @@ function openItemModal(item) {
   }
 
   $("imName").textContent   = item.name;
-  $("imPrice").textContent  = `${TENANT.currency}${parseFloat(item.price).toFixed(2)}`;
+  $("imPrice").textContent  = fmtLbp(item.price);
   $("imDesc").textContent   = item.desc || "";
   $("imQtyNum").textContent = "1";
   modalSize = null;
@@ -719,7 +733,7 @@ function openItemModal(item) {
         <div class="combo-opt-info">
           <div class="combo-opt-name">${s.name}</div>
         </div>
-        <div class="combo-opt-price">${TENANT.currency}${parseFloat(s.price).toFixed(2)}</div>
+        <div class="combo-opt-price">${fmtLbp(s.price)}</div>
         <div class="combo-opt-radio"></div>
       </div>`).join("");
 
@@ -729,12 +743,12 @@ function openItemModal(item) {
         if (modalSize === idx) {
           modalSize = null;
           el.classList.remove("sel");
-          $("imPrice").textContent = `${TENANT.currency}${parseFloat(item.price).toFixed(2)}`;
+          $("imPrice").textContent = fmtLbp(item.price);
         } else {
           modalSize = idx;
           sizesEl.querySelectorAll(".combo-opt").forEach(e => e.classList.remove("sel"));
           el.classList.add("sel");
-          $("imPrice").textContent = `${TENANT.currency}${parseFloat(item.sizes[idx].price).toFixed(2)}`;
+          $("imPrice").textContent = fmtLbp(item.sizes[idx].price);
         }
         updateImAddBtn();
       });
@@ -759,7 +773,7 @@ function openItemModal(item) {
           <div class="combo-opt-name">${c.name}</div>
           ${c.desc?`<div class="combo-opt-desc">${c.desc}</div>`:""}
         </div>
-        <div class="combo-opt-price">+${TENANT.currency}${parseFloat(c.price).toFixed(2)}</div>
+        <div class="combo-opt-price">+${fmtLbp(c.price)}</div>
         <div class="combo-opt-radio"></div>
       </div>`).join("");
 
@@ -874,7 +888,7 @@ function renderCart() {
         : `<div class="ci-img" style="display:flex;align-items:center;justify-content:center;font-size:22px">🍴</div>`}
       <div class="ci-info">
         <div class="ci-name">${it.name}</div>
-        <div class="ci-price">${TENANT.currency}${(it.price*qty).toFixed(2)}</div>
+        <div class="ci-price">${fmtLbp(it.price*qty)} <span class="ci-price-usd">(${fmtUsd(it.price*qty)})</span></div>
         ${notes?`<div class="ci-notes">📝 ${notes}</div>`:""}
         <div class="qty">
           <button class="qb" data-q="dec" data-key="${cartKey}">−</button>
@@ -889,19 +903,18 @@ function renderCart() {
   const tax = vatEnabled ? sub*(TENANT.vatPct/100) : 0;
   const total = sub+tax;
 
-  $("dSub").textContent = `${TENANT.currency}${sub.toFixed(2)}`;
+  $("dSub").innerHTML = `${fmtLbp(sub)} <span class="ci-price-usd">(${fmtUsd(sub)})</span>`;
   const taxRow = $("dTaxRow");
   if (vatEnabled) {
     taxRow.style.display = "flex";
     $("dTaxLabel").textContent = `VAT (${TENANT.vatPct}%)`;
-    $("dTax").textContent = `${TENANT.currency}${tax.toFixed(2)}`;
+    $("dTax").innerHTML = `${fmtLbp(tax)} <span class="ci-price-usd">(${fmtUsd(tax)})</span>`;
   } else {
     taxRow.style.display = "none";
   }
   document.querySelector(".drow").style.display = vatEnabled?"flex":"none";
-  $("dTot").textContent    = `${TENANT.currency}${total.toFixed(2)}`;
-  const lbp = Math.round(total * TENANT.lbpRate);
-  $("dTotLbp").textContent = `≈ ${lbp.toLocaleString()} LBP`;
+  $("dTot").textContent    = fmtLbp(total);
+  $("dTotLbp").textContent = `≈ ${fmtUsd(total)}`;
   $("dSum").style.display = "block";
 
   $("ciList").querySelectorAll(".qb").forEach(b=>b.addEventListener("click",()=>{
@@ -956,12 +969,12 @@ $("orderBtn").addEventListener("click", () => {
     ``,
     `*Order:*`,
     ...entries.map(({item:it,qty,notes})=>
-      `• ${it.name} x${qty} — ${TENANT.currency}${(it.price*qty).toFixed(2)}${notes?`\n  📝 ${notes}`:""}`
+      `• ${it.name} x${qty} — ${fmtLbp(it.price*qty)} (${fmtUsd(it.price*qty)})${notes?`\n  📝 ${notes}`:""}`
     ),
     ``,
-    vatEnabled?`Subtotal: ${TENANT.currency}${sub.toFixed(2)}`:"",
-    vatEnabled?`VAT (${TENANT.vatPct}%): ${TENANT.currency}${tax.toFixed(2)}`:"",
-    `*Total: ${TENANT.currency}${total.toFixed(2)} (≈ ${Math.round(total * TENANT.lbpRate).toLocaleString()} LBP)*`,
+    vatEnabled?`Subtotal: ${fmtLbp(sub)} (${fmtUsd(sub)})`:"",
+    vatEnabled?`VAT (${TENANT.vatPct}%): ${fmtLbp(tax)} (${fmtUsd(tax)})`:"",
+    `*Total: ${fmtLbp(total)} (${fmtUsd(total)})*`,
   ].filter(l=>l!=="");
 
   const msg      = encodeURIComponent(lines.join("\n"));
